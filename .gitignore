@@ -1,0 +1,17 @@
+# Authorized keys and data - contains Pi public keys, DB
+authorized_keys
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env
+.env
+.env.local

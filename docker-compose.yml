@@ -1,0 +1,42 @@
+# Run the Pi tunnel SSH server and web UI on your host
+# 1. Set IMAGE and WEB_IMAGE in .env (or use defaults)
+# 2. Set SERVER_URL (e.g. https://your-server.com) for registration links
+# 3. docker compose up -d
+
+services:
+  pi-tunnel:
+    image: ${IMAGE:-ghcr.io/your-org/pi-tunnel-sshd:latest}
+    container_name: pi-tunnel
+    restart: unless-stopped
+    depends_on:
+      - pi-tunnel-web
+    ports:
+      - "2222:22"
+      - "10022:10022"
+      - "10023:10023"
+      - "10024:10024"
+      - "10025:10025"
+      - "10026:10026"
+      - "10027:10027"
+      - "10028:10028"
+      - "10029:10029"
+      - "10030:10030"
+      - "10031:10031"
+    volumes:
+      - ./data/authorized_keys:/home/pitunnel/.ssh/authorized_keys:ro
+
+  pi-tunnel-web:
+    image: ${WEB_IMAGE:-ghcr.io/your-org/pi-tunnel-web:latest}
+    container_name: pi-tunnel-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - SERVER_URL=${SERVER_URL:-}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - DB_PATH=/app/data/pi_tunnel.db
+      - AUTHORIZED_KEYS_PATH=/app/data/authorized_keys
+    volumes:
+      - ./data:/app/data

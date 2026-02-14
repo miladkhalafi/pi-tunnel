@@ -1,0 +1,5 @@
+# Ignore everything except what we need
+*
+!Dockerfile
+!sshd_config
+!entrypoint.sh

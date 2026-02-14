@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Pi Tunnel - Dashboard{% endblock %}
+
+{% block content %}
+<section class="settings">
+    <h2>Settings</h2>
+    <form id="settings-form">
+        <label for="server_public_key">Server public key (for Pi to accept SSH from server):</label>
+        <textarea id="server_public_key" name="server_public_key" rows="3" placeholder="ssh-ed25519 AAAAC3...">{{ server_public_key or '' }}</textarea>
+        <button type="submit">Save</button>
+    </form>
+</section>
+
+<section class="create">
+    <h2>Add Raspberry Pi</h2>
+    <form id="create-form">
+        <input type="text" id="pi-name" name="name" placeholder="Pi name (e.g. pi-home)" required>
+        <button type="submit">Create</button>
+    </form>
+</section>
+
+<section class="pis">
+    <h2>Raspberry Pis</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Port</th>
+                <th>Status</th>
+                <th>Registration URL</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pi in pis %}
+            <tr data-id="{{ pi.id }}">
+                <td>{{ pi.name }}</td>
+                <td>{{ pi.port }}</td>
+                <td>
+                    {% if pi.public_key %}
+                    <span class="status registered">Registered</span>
+                    {% else %}
+                    <span class="status pending">Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
+                    <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}">Copy</button>
+                </td>
+                <td>
+                    <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">No Pis yet. Create one above.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<script>
+document.getElementById('settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ server_public_key: document.getElementById('server_public_key').value })
+    });
+    if (res.ok) alert('Settings saved.');
+});
+
+document.getElementById('create-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('pi-name').value.trim() || 'pi';
+    const res = await fetch('/api/pis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (res.ok) location.reload();
+    else alert(data.error || 'Failed');
+});
+
+document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.url);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+});
+
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        if (!confirm('Delete this Pi?')) return;
+        const id = btn.dataset.id;
+        const res = await fetch(`/api/pis/${id}`, { method: 'DELETE', credentials: 'include' });
+        if (res.ok) document.querySelector(`tr[data-id="${id}"]`).remove();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,6 @@
+# Add each Pi's SSH public key (one line per Pi)
+# Generate on Pi: ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519
+# Copy from Pi: cat ~/.ssh/id_ed25519.pub
+#
+# Example:
+# ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... pi@raspberrypi
