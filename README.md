@@ -19,8 +19,8 @@ Control one or more Raspberry Pis remotely via reverse SSH tunnels. The Pi conne
 ### 1. Deploy on Your Server
 
 ```bash
-git clone https://github.com/YOUR_ORG/pi-remote-access.git
-cd pi-remote-access
+git clone https://github.com/miladkhalafi/pi-tunnel.git
+cd pi-tunnel
 ```
 
 Create a `.env` file:
@@ -30,8 +30,8 @@ Create a `.env` file:
 SERVER_URL=https://your-server.com
 
 # Optional: use pre-built images from GHCR
-# IMAGE=ghcr.io/YOUR_ORG/pi-tunnel-sshd:latest
-# WEB_IMAGE=ghcr.io/YOUR_ORG/pi-tunnel-web:latest
+# IMAGE=ghcr.io/miladkhalafi/pi-tunnel-sshd:latest
+# WEB_IMAGE=ghcr.io/miladkhalafi/pi-tunnel-web:latest
 
 # Required for production
 SECRET_KEY=your-random-secret-key
@@ -103,8 +103,8 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 | `SECRET_KEY` | Flask secret key (set in production) | `change-me-in-production` |
 | `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
 | `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
-| `IMAGE` | pi-tunnel-sshd Docker image | `ghcr.io/your-org/pi-tunnel-sshd:latest` |
-| `WEB_IMAGE` | pi-tunnel-web Docker image | `ghcr.io/your-org/pi-tunnel-web:latest` |
+| `IMAGE` | pi-tunnel-sshd Docker image | `ghcr.io/miladkhalafi/pi-tunnel-sshd:latest` |
+| `WEB_IMAGE` | pi-tunnel-web Docker image | `ghcr.io/miladkhalafi/pi-tunnel-web:latest` |
 
 ## Ports
 
@@ -129,8 +129,8 @@ docker build -t pi-tunnel-web ./pi-tunnel-web
 
 On push to `main`, the workflow builds and pushes both images to GitHub Container Registry:
 
-- `ghcr.io/<owner>/pi-tunnel-sshd:latest`
-- `ghcr.io/<owner>/pi-tunnel-web:latest`
+- `ghcr.io/miladkhalafi/pi-tunnel-sshd:latest`
+- `ghcr.io/miladkhalafi/pi-tunnel-web:latest`
 
 ## Security Notes
 

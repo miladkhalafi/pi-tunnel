@@ -5,7 +5,7 @@
 
 services:
   pi-tunnel:
-    image: ${IMAGE:-ghcr.io/your-org/pi-tunnel-sshd:latest}
+    image: ${IMAGE:-ghcr.io/miladkhalafi/pi-tunnel-sshd:latest}
     container_name: pi-tunnel
     restart: unless-stopped
     depends_on:
@@ -26,7 +26,7 @@ services:
       - ./data/authorized_keys:/home/pitunnel/.ssh/authorized_keys:ro
 
   pi-tunnel-web:
-    image: ${WEB_IMAGE:-ghcr.io/your-org/pi-tunnel-web:latest}
+    image: ${WEB_IMAGE:-ghcr.io/miladkhalafi/pi-tunnel-web:latest}
     container_name: pi-tunnel-web
     restart: unless-stopped
     ports:
