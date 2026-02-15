@@ -67,6 +67,22 @@ header .container {
   justify-content: space-between;
 }
 
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-link:hover {
+  color: inherit;
+}
+
+.logo {
+  flex-shrink: 0;
+}
+
 header h1 {
   margin: 0;
   font-size: 1.25rem;
