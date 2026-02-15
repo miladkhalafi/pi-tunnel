@@ -4,7 +4,7 @@
 
 {% block content %}
 <section class="terminal-section">
-    <p><a href="{{ url_for('index') }}">&larr; Back to dashboard</a></p>
+    <p><a href="{{ url_for('index') }}">← Back to dashboard</a></p>
     <h2>Terminal: {{ pi.name }} <span id="connection-status" class="connection-status"></span></h2>
     <div id="terminal"></div>
 </section>
@@ -19,7 +19,7 @@ const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 const term = new Terminal({
     cursorBlink: true,
     fontSize: 14,
-    theme: { background: '#1e1e1e', foreground: '#d4d4d4' }
+    theme: { background: '#0f1117', foreground: '#e6edf3' }
 });
 term.open(document.getElementById('terminal'));
 

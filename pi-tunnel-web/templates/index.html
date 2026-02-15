@@ -24,47 +24,77 @@
 
 <section class="pis">
     <h2>Raspberry Pis</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Port</th>
-                <th>Status</th>
-                <th>Registration</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pi in pis %}
-            <tr data-id="{{ pi.id }}">
-                <td>{{ pi.name }}</td>
-                <td>{{ pi.port }}</td>
-                <td>
-                    {% if pi.public_key %}
-                    <span class="status registered">Registered</span>
-                    {% else %}
-                    <span class="status pending">Pending</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
-                    <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
-                    <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
-                </td>
-                <td>
-                    {% if pi.public_key %}
-                    <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
-                    {% endif %}
-                    <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5">No Pis yet. Create one above.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="pis-table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Port</th>
+                    <th>Status</th>
+                    <th>Registration</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pi in pis %}
+                <tr data-id="{{ pi.id }}">
+                    <td>{{ pi.name }}</td>
+                    <td>{{ pi.port }}</td>
+                    <td>
+                        {% if pi.public_key %}
+                        <span class="status registered">Registered</span>
+                        {% else %}
+                        <span class="status pending">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
+                        <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
+                        <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
+                    </td>
+                    <td>
+                        {% if pi.public_key %}
+                        <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
+                        {% endif %}
+                        <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">No Pis yet. Create one above.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pi-cards">
+        {% for pi in pis %}
+        <div class="pi-card" data-id="{{ pi.id }}">
+            <div class="pi-card-header">
+                <span class="pi-card-name">{{ pi.name }}</span>
+                {% if pi.public_key %}
+                <span class="status registered">Registered</span>
+                {% else %}
+                <span class="status pending">Pending</span>
+                {% endif %}
+            </div>
+            <div class="pi-card-meta">
+                <span>Port {{ pi.port }}</span>
+            </div>
+            <div class="pi-card-url">{{ base_url }}/register/{{ pi.token }}</div>
+            <div class="pi-card-actions">
+                <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
+                <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
+                {% if pi.public_key %}
+                <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
+                {% endif %}
+                <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
+            </div>
+        </div>
+        {% else %}
+        <p style="color: var(--text-muted); margin: 0;">No Pis yet. Create one above.</p>
+        {% endfor %}
+    </div>
 </section>
 
 <script>
@@ -145,7 +175,8 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
         try {
             const res = await fetch(`/api/pis/${id}`, { method: 'DELETE', credentials: 'include' });
             if (res.ok) {
-                document.querySelector(`tr[data-id="${id}"]`).remove();
+                document.querySelector(`tr[data-id="${id}"]`)?.remove();
+                document.querySelector(`.pi-card[data-id="${id}"]`)?.remove();
                 showToast('Pi deleted.', 'success');
             } else {
                 showToast('Failed to delete.', 'error');
