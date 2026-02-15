@@ -29,7 +29,7 @@ services:
       - "10030:10030"
       - "10031:10031"
     volumes:
-      - ./data/authorized_keys:/home/pitunnel/.ssh/authorized_keys:ro
+      - ./data/authorized_keys:/home/pitunnel/.ssh/authorized_keys
 
   pi-tunnel-web:
     image: ${WEB_IMAGE:-ghcr.io/miladkhalafi/pi-tunnel-web:latest}
