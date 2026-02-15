@@ -1,6 +1,7 @@
 import os
 from functools import wraps
 from flask import Flask, render_template, request, jsonify, Response
+from flask_sock import Sock
 
 from models import (
     init_db,
@@ -16,6 +17,11 @@ from models import (
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-in-production")
+app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": 25}
+sock = Sock(app)
+
+from terminal import register_terminal
+register_terminal(sock)
 
 
 @app.before_request
@@ -81,6 +87,19 @@ def api_delete_pi(pi_id):
     return jsonify({"error": "Not found"}), 404
 
 
+from terminal_auth import create_token
+
+
+@app.route("/terminal/<int:pi_id>")
+@requires_auth
+def terminal_page(pi_id):
+    pi = get_pi_by_id(pi_id)
+    if not pi:
+        return "Pi not found", 404
+    token = create_token(pi_id)
+    return render_template("terminal.html", pi=pi, token=token)
+
+
 @app.route("/api/settings", methods=["POST"])
 @requires_auth
 def api_save_settings():
@@ -140,4 +159,4 @@ def register_submit(token):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, threaded=True)

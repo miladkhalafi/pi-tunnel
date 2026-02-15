@@ -38,5 +38,9 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - DB_PATH=/app/data/pi_tunnel.db
       - AUTHORIZED_KEYS_PATH=/app/data/authorized_keys
+      - SSH_PRIVATE_KEY_PATH=${SSH_PRIVATE_KEY_PATH:-/app/.ssh/id_ed25519}
+      - SSH_HOST=pi-tunnel
+      - SSH_USERNAME=${SSH_USERNAME:-pi}
     volumes:
       - ./data:/app/data
+      - ./keys:/app/.ssh:ro

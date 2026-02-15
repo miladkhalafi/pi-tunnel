@@ -29,7 +29,7 @@
                 <th>Port</th>
                 <th>Status</th>
                 <th>Registration URL</th>
-                <th></th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -49,6 +49,9 @@
                     <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}">Copy</button>
                 </td>
                 <td>
+                    {% if pi.public_key %}
+                    <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
+                    {% endif %}
                     <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
                 </td>
             </tr>

@@ -1,6 +1,7 @@
 # Authorized keys and data - contains Pi public keys, DB
 authorized_keys
 data/
+keys/
 
 # OS
 .DS_Store

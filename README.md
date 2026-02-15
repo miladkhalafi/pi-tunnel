@@ -6,7 +6,7 @@ Control one or more Raspberry Pis remotely via reverse SSH tunnels. The Pi conne
 
 - **Raspberry Pi** (behind NAT): Opens an outbound SSH tunnel to your server. No port forwarding on your router.
 - **Server** (static IP): Accepts tunnels and forwards them. You SSH to the server, then `ssh -p PORT user@localhost` to reach a Pi.
-- **Web UI**: Create Pis, get unique registration URLs, and run a script on each Pi to generate keys and configure the tunnel automatically.
+- **Web UI**: Create Pis, get unique registration URLs, run a script on each Pi to generate keys and configure the tunnel, and connect via a browser terminal.
 
 ## Prerequisites
 
@@ -86,6 +86,19 @@ You'll be prompted for:
 
 ### 5. Connect to the Pi
 
+**Option A: Web terminal** (recommended)
+
+1. Mount your SSH private key for the web terminal. Use the same key pair as the public key in Settings:
+   ```bash
+   mkdir -p keys
+   cp ~/.ssh/pi_shell_key keys/id_ed25519
+   chmod 600 keys/id_ed25519
+   ```
+2. In the dashboard, click **Connect** next to a registered Pi.
+3. A browser terminal opens; you get a shell on the Pi.
+
+**Option B: SSH from server**
+
 1. SSH to your server.
 2. Run:
 
@@ -103,6 +116,9 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 | `SECRET_KEY` | Flask secret key (set in production) | `change-me-in-production` |
 | `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
 | `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
+| `SSH_PRIVATE_KEY_PATH` | Path to private key for web terminal (must match Settings public key) | `/app/.ssh/id_ed25519` |
+| `SSH_HOST` | Hostname for tunnel container (Docker network) | `pi-tunnel` |
+| `SSH_USERNAME` | Username on the Pi | `pi` |
 | `IMAGE` | pi-tunnel-sshd Docker image | `ghcr.io/miladkhalafi/pi-tunnel-sshd:latest` |
 | `WEB_IMAGE` | pi-tunnel-web Docker image | `ghcr.io/miladkhalafi/pi-tunnel-web:latest` |
 
@@ -145,6 +161,10 @@ On push to `main`, the workflow builds and pushes both images to GitHub Containe
 **Pi shows "Pending" after running the script**
 - Ensure the server's public key is set in Settings
 - Check that the Pi can reach the server (curl the registration URL)
+
+**Web terminal shows "SSH private key not configured"**
+- Create `keys/` directory and copy your private key as `keys/id_ed25519` (must match the public key in Settings)
+- Ensure the key has correct permissions: `chmod 600 keys/id_ed25519`
 
 **Cannot connect to Pi from server**
 - Verify the tunnel is running: `systemctl status ssh-reverse-tunnel` on the Pi
