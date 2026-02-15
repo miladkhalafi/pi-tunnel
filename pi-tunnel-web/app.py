@@ -2,7 +2,10 @@ import os
 import time
 from collections import defaultdict
 from functools import wraps
+from pathlib import Path
 from urllib.parse import urlparse
+
+import paramiko
 from flask import Flask, render_template, request, jsonify, Response
 from flask_sock import Sock
 
@@ -27,9 +30,43 @@ from terminal import register_terminal
 register_terminal(sock)
 
 
+def derive_public_key_from_private(path: str) -> str | None:
+    """Load private key and return OpenSSH-format public key string."""
+    try:
+        key = paramiko.PKey.from_path(path)
+        return f"{key.get_name()} {key.get_base64()}"
+    except Exception:
+        return None
+
+
+def ensure_server_public_key():
+    """Auto-populate server_public_key from env, file, or private key if not set."""
+    if get_setting("server_public_key"):
+        return
+    key = os.environ.get("SERVER_PUBLIC_KEY", "").strip()
+    if key:
+        set_setting("server_public_key", key)
+        return
+    path = os.environ.get("SERVER_PUBLIC_KEY_PATH", "").strip()
+    if path and Path(path).is_file():
+        try:
+            key = Path(path).read_text().strip()
+            if key:
+                set_setting("server_public_key", key)
+                return
+        except OSError:
+            pass
+    private_path = os.environ.get("SSH_PRIVATE_KEY_PATH", "/app/.ssh/id_ed25519").strip()
+    if private_path and Path(private_path).is_file():
+        key = derive_public_key_from_private(private_path)
+        if key:
+            set_setting("server_public_key", key)
+
+
 @app.before_request
 def setup():
     init_db()
+    ensure_server_public_key()
 
 
 def requires_auth(f):

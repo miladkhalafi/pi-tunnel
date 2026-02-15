@@ -81,12 +81,12 @@ This runs:
 ### 2. Configure the Web UI
 
 1. Open `http://YOUR_SERVER:8080` (or your domain with reverse proxy).
-2. In **Settings**, paste your server's SSH public key. This is the key you use when SSHing from the server to the Pi. If you don't have one:
+2. The server public key is auto-populated when you mount the private key (see step 5). If auto-derivation fails (e.g. encrypted key), paste it manually in **Settings**. To generate a key:
    ```bash
    ssh-keygen -t ed25519 -N '' -f ~/.ssh/pi_shell_key
    cat ~/.ssh/pi_shell_key.pub
    ```
-3. Click **Save**.
+3. Click **Save** if you pasted manually.
 
 ### 3. Add a Raspberry Pi
 
@@ -113,7 +113,7 @@ The script will:
 
 **Option A: Web terminal** (recommended)
 
-1. Mount your SSH private key for the web terminal. Use the same key pair as the public key in Settings:
+1. Mount your SSH private key for the web terminal (the public key is auto-derived and added to Settings):
    ```bash
    mkdir -p keys
    cp ~/.ssh/pi_shell_key keys/id_ed25519
@@ -142,6 +142,8 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 | `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
 | `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
 | `SSH_PRIVATE_KEY_PATH` | Path to private key for web terminal (must match Settings public key) | `/app/.ssh/id_ed25519` |
+| `SERVER_PUBLIC_KEY` | Server public key string (overrides auto-derivation from private key) | (none) |
+| `SERVER_PUBLIC_KEY_PATH` | Path to `.pub` file when public key is elsewhere | (none) |
 | `SSH_SERVER_PORT` | SSH port on server for Pi tunnel (injected into registration script) | `2222` |
 | `SSH_HOST` | Hostname for tunnel container (Docker network) | `pi-tunnel` |
 | `SSH_USERNAME` | Username on the Pi | `pi` |
