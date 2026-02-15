@@ -81,12 +81,7 @@ This runs:
 ### 2. Configure the Web UI
 
 1. Open `http://YOUR_SERVER:8080` (or your domain with reverse proxy).
-2. The server public key is auto-populated when you mount the private key (see step 5). If auto-derivation fails (e.g. encrypted key), paste it manually in **Settings**. To generate a key:
-   ```bash
-   ssh-keygen -t ed25519 -N '' -f ~/.ssh/pi_shell_key
-   cat ~/.ssh/pi_shell_key.pub
-   ```
-3. Click **Save** if you pasted manually.
+2. On first run, an SSH key pair is auto-generated and the server public key is populated in **Settings**. Click **Save** to confirm. If you prefer your own key, mount `./keys` with `id_ed25519` and paste the public key manually.
 
 ### 3. Add a Raspberry Pi
 
@@ -113,14 +108,11 @@ The script will:
 
 **Option A: Web terminal** (recommended)
 
-1. Mount your SSH private key for the web terminal (the public key is auto-derived and added to Settings):
-   ```bash
-   mkdir -p keys
-   cp ~/.ssh/pi_shell_key keys/id_ed25519
-   chmod 600 keys/id_ed25519
-   ```
+1. Keys are auto-generated on first run (stored in `./data/.ssh/`). No setup needed.
 2. In the dashboard, click **Connect** next to a registered Pi.
 3. A browser terminal opens; you get a shell on the Pi.
+
+To use your own key instead, mount `./keys` with your `id_ed25519` and add the volume to docker-compose.
 
 **Option B: SSH from server**
 
@@ -141,7 +133,8 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 | `SECRET_KEY` | Flask secret key (set in production) | `change-me-in-production` |
 | `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
 | `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
-| `SSH_PRIVATE_KEY_PATH` | Path to private key for web terminal (must match Settings public key) | `/app/.ssh/id_ed25519` |
+| `SSH_PRIVATE_KEY_PATH` | Path to private key for web terminal (overrides auto-generated key in `./data/.ssh/`) | `/app/.ssh/id_ed25519` |
+| `AUTO_GENERATE_KEYS` | Set to `false` to disable auto-generation (require manual key setup) | `true` |
 | `SERVER_PUBLIC_KEY` | Server public key string (overrides auto-derivation from private key) | (none) |
 | `SERVER_PUBLIC_KEY_PATH` | Path to `.pub` file when public key is elsewhere | (none) |
 | `SSH_SERVER_PORT` | SSH port on server for Pi tunnel (injected into registration script) | `2222` |
@@ -193,8 +186,8 @@ On push to `main`, the workflow builds and pushes both images to GitHub Containe
 - Check that the Pi can reach the server (curl the registration URL)
 
 **Web terminal shows "SSH private key not configured"**
-- Create `keys/` directory and copy your private key as `keys/id_ed25519` (must match the public key in Settings)
-- Ensure the key has correct permissions: `chmod 600 keys/id_ed25519`
+- Keys are auto-generated on first run; ensure the `./data` volume is writable
+- To use your own key: create `keys/` and copy your private key as `keys/id_ed25519`, then mount the volume in docker-compose
 
 **Cannot connect to Pi from server**
 - Verify the tunnel is running: `systemctl status ssh-reverse-tunnel` on the Pi

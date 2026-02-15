@@ -7,6 +7,7 @@ import paramiko
 from flask import request
 from flask_sock import Sock, ConnectionClosed
 
+from keys_util import get_effective_private_key_path
 from models import get_pi_by_id
 from terminal_auth import validate_token
 
@@ -14,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 SSH_HOST = os.environ.get("SSH_HOST", "pi-tunnel")
 SSH_USERNAME = os.environ.get("SSH_USERNAME", "pi")
-SSH_PRIVATE_KEY_PATH = os.environ.get("SSH_PRIVATE_KEY_PATH", "")
 
 
 def run_terminal(ws, pi_id: int):
@@ -27,7 +27,7 @@ def run_terminal(ws, pi_id: int):
         ws.send("Error: Pi not registered yet")
         return
 
-    key_path = SSH_PRIVATE_KEY_PATH.strip()
+    key_path = get_effective_private_key_path()
     if not key_path or not os.path.isfile(key_path):
         ws.send("Error: SSH private key not configured. Mount key and set SSH_PRIVATE_KEY_PATH.")
         return

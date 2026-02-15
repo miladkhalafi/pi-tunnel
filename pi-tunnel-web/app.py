@@ -9,6 +9,7 @@ import paramiko
 from flask import Flask, render_template, request, jsonify, Response
 from flask_sock import Sock
 
+from keys_util import ensure_ssh_keys, get_effective_private_key_path
 from models import (
     init_db,
     create_pi,
@@ -56,7 +57,7 @@ def ensure_server_public_key():
                 return
         except OSError:
             pass
-    private_path = os.environ.get("SSH_PRIVATE_KEY_PATH", "/app/.ssh/id_ed25519").strip()
+    private_path = get_effective_private_key_path()
     if private_path and Path(private_path).is_file():
         key = derive_public_key_from_private(private_path)
         if key:
@@ -66,6 +67,7 @@ def ensure_server_public_key():
 @app.before_request
 def setup():
     init_db()
+    ensure_ssh_keys()
     ensure_server_public_key()
 
 
