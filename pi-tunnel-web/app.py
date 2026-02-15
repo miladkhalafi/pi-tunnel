@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from collections import defaultdict
@@ -6,6 +7,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import paramiko
+
+logger = logging.getLogger(__name__)
 from flask import Flask, render_template, request, jsonify, Response
 from flask_sock import Sock
 
@@ -67,8 +70,14 @@ def ensure_server_public_key():
 @app.before_request
 def setup():
     init_db()
-    ensure_ssh_keys()
-    ensure_server_public_key()
+    try:
+        ensure_ssh_keys()
+    except Exception:
+        logger.exception("ensure_ssh_keys failed")
+    try:
+        ensure_server_public_key()
+    except Exception:
+        logger.exception("ensure_server_public_key failed")
 
 
 def requires_auth(f):
@@ -112,6 +121,12 @@ def rate_limit_register(f):
     return decorated
 
 
+@app.errorhandler(500)
+def handle_500(e):
+    logger.exception("Internal Server Error")
+    return "Internal Server Error", 500
+
+
 @app.route("/health")
 def health():
     """Lightweight health check for Docker/orchestration."""
@@ -120,7 +135,13 @@ def health():
 
 def get_base_url():
     """Base URL for registration links (SERVER_URL or request host)."""
-    return os.environ.get("SERVER_URL", "").rstrip("/") or request.host_url.rstrip("/")
+    url = os.environ.get("SERVER_URL", "").rstrip("/")
+    if url:
+        return url
+    try:
+        return (request.host_url or "").rstrip("/") or ""
+    except RuntimeError:
+        return ""
 
 
 def get_server_host():
