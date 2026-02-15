@@ -2,6 +2,42 @@
 
 Control one or more Raspberry Pis remotely via reverse SSH tunnels. The Pi connects out to your server (works behind NAT); you SSH to the server, then connect to any Pi through the tunnel.
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph User["👤 User"]
+        Browser["Browser (Web Terminal)"]
+        SSHClient["SSH Client"]
+    end
+
+    subgraph Server["🖥️ Server (Docker)"]
+        Web["pi-tunnel-web :8080"]
+        SSH["pi-tunnel :2222"]
+        Tunnels["Tunnel Ports 10022-10031"]
+        
+        Web --> SSH
+        SSH --> Tunnels
+    end
+
+    subgraph Pis["🍓 Raspberry Pis (behind NAT)"]
+        Pi1["Pi 1"]
+        Pi2["Pi 2"]
+        PiN["Pi N"]
+    end
+
+    Browser -->|"HTTPS"| Web
+    SSHClient -->|"SSH to server"| Server
+    Web -->|"SSH via tunnel"| Tunnels
+    Tunnels --> Pi1
+    Tunnels --> Pi2
+    Tunnels --> PiN
+
+    Pi1 -->|"Outbound SSH tunnel"| SSH
+    Pi2 -->|"Outbound SSH tunnel"| SSH
+    PiN -->|"Outbound SSH tunnel"| SSH
+```
+
 ## How It Works
 
 - **Raspberry Pi** (behind NAT): Opens an outbound SSH tunnel to your server. No port forwarding on your router.
@@ -19,26 +55,15 @@ Control one or more Raspberry Pis remotely via reverse SSH tunnels. The Pi conne
 ### 1. Deploy on Your Server
 
 ```bash
-git clone https://github.com/miladkhalafi/pi-tunnel.git
-cd pi-tunnel
+git clone https://github.com/miladkhalafi/pi-remote-access.git
+cd pi-remote-access
 ```
 
-Create a `.env` file:
+Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
-# Base URL for registration links (use your server's public URL)
-SERVER_URL=https://your-server.com
-
-# Optional: use pre-built images from GHCR
-# IMAGE=ghcr.io/miladkhalafi/pi-tunnel-sshd:latest
-# WEB_IMAGE=ghcr.io/miladkhalafi/pi-tunnel-web:latest
-
-# Required for production
-SECRET_KEY=your-random-secret-key
-
-# Admin login (HTTP Basic Auth) - when set, dashboard requires login
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-secure-password
+cp .env.example .env
+# Edit .env: set SERVER_URL, SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
 ```
 
 Start the services:
@@ -50,6 +75,8 @@ docker compose up -d
 This runs:
 - **pi-tunnel-web** on port 8080 (web UI)
 - **pi-tunnel** on port 2222 (SSH for Pi connections) and ports 10022–10031 (tunnel endpoints)
+
+**First-time deployment:** The pi-tunnel container starts with an empty `authorized_keys` file. Create a Pi in the web UI, run the registration script on the Pi, and the tunnel will accept connections once the key is registered.
 
 ### 2. Configure the Web UI
 
@@ -80,9 +107,7 @@ The script will:
 - Add the server's public key to the Pi's `authorized_keys`
 - Install autossh and create a systemd service for the tunnel
 
-You'll be prompted for:
-- **Server IP or hostname**: Your server's address
-- **SSH port**: 2222 (default)
+**Headless mode:** When `SERVER_URL` is set on the server, the script runs fully non-interactive with no prompts. The server host and SSH port (2222) are injected into the script.
 
 ### 5. Connect to the Pi
 
@@ -112,13 +137,16 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SERVER_URL` | Base URL for registration links (e.g. `https://your-server.com`) | Request host |
+| `SERVER_URL` | Base URL for registration links and tunnel target (e.g. `https://your-server.com`). Required for headless registration | Request host |
 | `SECRET_KEY` | Flask secret key (set in production) | `change-me-in-production` |
 | `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
 | `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
 | `SSH_PRIVATE_KEY_PATH` | Path to private key for web terminal (must match Settings public key) | `/app/.ssh/id_ed25519` |
+| `SSH_SERVER_PORT` | SSH port on server for Pi tunnel (injected into registration script) | `2222` |
 | `SSH_HOST` | Hostname for tunnel container (Docker network) | `pi-tunnel` |
 | `SSH_USERNAME` | Username on the Pi | `pi` |
+| `PORT_START` | First tunnel port (ensure docker-compose exposes the range) | `10022` |
+| `PORT_COUNT` | Number of tunnel ports | `10` |
 | `IMAGE` | pi-tunnel-sshd Docker image | `ghcr.io/miladkhalafi/pi-tunnel-sshd:latest` |
 | `WEB_IMAGE` | pi-tunnel-web Docker image | `ghcr.io/miladkhalafi/pi-tunnel-web:latest` |
 

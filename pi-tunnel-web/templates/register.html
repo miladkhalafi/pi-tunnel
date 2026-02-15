@@ -6,7 +6,10 @@
 <section class="register">
     <h2>Register {{ pi.name }}</h2>
     <p>On your Raspberry Pi (headless), run:</p>
-    <pre><code>curl -sSL {{ script_url }} | bash</code></pre>
+    <div class="script-block">
+        <pre><code id="script-cmd">curl -sSL {{ script_url }} | bash</code></pre>
+        <button type="button" class="copy-script-btn" data-cmd="curl -sSL {{ script_url }} | bash">Copy command</button>
+    </div>
     <p>The script will:</p>
     <ul>
         <li>Generate an SSH key if needed</li>
@@ -14,6 +17,16 @@
         <li>Add the server's public key to the Pi's authorized_keys</li>
         <li>Configure the reverse SSH tunnel (autossh systemd service)</li>
     </ul>
-    <p>You will be prompted for the server IP and SSH port (default 2222).</p>
+    <p>When <code>SERVER_URL</code> is set on the server, the script runs fully headless with no prompts.</p>
 </section>
+
+<script>
+document.querySelector('.copy-script-btn').addEventListener('click', () => {
+    const cmd = document.querySelector('#script-cmd').textContent;
+    navigator.clipboard.writeText(cmd);
+    const btn = document.querySelector('.copy-script-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy command', 2000);
+});
+</script>
 {% endblock %}

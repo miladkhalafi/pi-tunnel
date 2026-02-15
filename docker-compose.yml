@@ -10,6 +10,12 @@ services:
     restart: unless-stopped
     depends_on:
       - pi-tunnel-web
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     ports:
       - "2222:22"
       - "10022:10022"
@@ -29,6 +35,12 @@ services:
     image: ${WEB_IMAGE:-ghcr.io/miladkhalafi/pi-tunnel-web:latest}
     container_name: pi-tunnel-web
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     ports:
       - "8080:8080"
     environment:
@@ -41,6 +53,9 @@ services:
       - SSH_PRIVATE_KEY_PATH=${SSH_PRIVATE_KEY_PATH:-/app/.ssh/id_ed25519}
       - SSH_HOST=pi-tunnel
       - SSH_USERNAME=${SSH_USERNAME:-pi}
+      - SSH_SERVER_PORT=${SSH_SERVER_PORT:-2222}
+      - PORT_START=${PORT_START:-10022}
+      - PORT_COUNT=${PORT_COUNT:-10}
     volumes:
       - ./data:/app/data
       - ./keys:/app/.ssh:ro

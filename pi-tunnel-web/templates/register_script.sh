@@ -6,6 +6,8 @@ set -e
 TOKEN="{{ token }}"
 BASE_URL="{{ base_url }}"
 BASE_URL="${BASE_URL%/}"
+SERVER_HOST="{{ server_host }}"
+SERVER_SSH_PORT="{{ server_ssh_port }}"
 
 echo "Pi Tunnel registration"
 echo "======================"
@@ -61,11 +63,22 @@ fi
 PORT=$(echo "$RESP" | grep -oE '"port"[[:space:]]*:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1)
 [ -z "$PORT" ] && PORT=10022
 
-# Prompt for server
-read -p "Server IP or hostname: " SERVER_IP
-[ -z "$SERVER_IP" ] && { echo "Server IP required."; exit 1; }
-read -p "SSH port on server [2222]: " SSH_PORT
-SSH_PORT=${SSH_PORT:-2222}
+# Server host: use auto-detected domain or prompt only when interactive
+if [ -z "$SERVER_HOST" ]; then
+  if [ -t 0 ]; then
+    read -p "Server domain or hostname: " SERVER_HOST
+  fi
+  [ -z "$SERVER_HOST" ] && { echo "Server domain required. Set SERVER_URL in server .env or run interactively."; exit 1; }
+fi
+# SSH port: use injected value or prompt only when interactive
+if [ -z "$SERVER_SSH_PORT" ]; then
+  if [ -t 0 ]; then
+    read -p "SSH port on server [2222]: " SSH_PORT
+  fi
+  SSH_PORT=${SSH_PORT:-2222}
+else
+  SSH_PORT="$SERVER_SSH_PORT"
+fi
 
 # Install autossh if needed
 if ! command -v autossh &>/dev/null; then
@@ -84,7 +97,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=$(whoami)
-ExecStart=/usr/bin/autossh -M 0 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -N -R ${PORT}:localhost:22 -p ${SSH_PORT} pitunnel@${SERVER_IP}
+ExecStart=/usr/bin/autossh -M 0 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -N -R ${PORT}:localhost:22 -p ${SSH_PORT} pitunnel@${SERVER_HOST}
 Restart=always
 RestartSec=10
 

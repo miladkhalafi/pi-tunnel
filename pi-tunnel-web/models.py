@@ -1,4 +1,6 @@
+import os
 import sqlite3
+import time
 import uuid
 from pathlib import Path
 from contextlib import contextmanager
@@ -6,14 +8,20 @@ from contextlib import contextmanager
 DB_PATH = Path(__file__).parent / "data" / "pi_tunnel.db"
 AUTHORIZED_KEYS_PATH = Path(__file__).parent / "authorized_keys"
 
-# Override at runtime via env
+
 def get_db_path():
-    import os
     return Path(os.environ.get("DB_PATH", DB_PATH))
 
+
 def get_authorized_keys_path():
-    import os
     return Path(os.environ.get("AUTHORIZED_KEYS_PATH", AUTHORIZED_KEYS_PATH))
+
+
+def get_port_range():
+    """Return (start, end) for tunnel port range. Default 10022-10031."""
+    start = int(os.environ.get("PORT_START", "10022"))
+    count = int(os.environ.get("PORT_COUNT", "10"))
+    return start, start + count
 
 
 @contextmanager
@@ -51,11 +59,12 @@ def init_db():
 
 def create_pi(name: str) -> dict:
     """Create a new Pi record, assign next available port. Returns pi dict."""
+    port_start, port_end = get_port_range()
     with get_db() as conn:
         used_ports = {r["port"] for r in conn.execute("SELECT port FROM pis").fetchall()}
-        available = [p for p in range(10022, 10032) if p not in used_ports]
+        available = [p for p in range(port_start, port_end) if p not in used_ports]
         if not available:
-            raise ValueError("No ports available (10022-10031)")
+            raise ValueError(f"No ports available ({port_start}-{port_end - 1})")
         port = min(available)
         token = uuid.uuid4().hex
         conn.execute(

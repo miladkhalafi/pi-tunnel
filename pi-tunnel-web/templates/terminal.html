@@ -5,7 +5,7 @@
 {% block content %}
 <section class="terminal-section">
     <p><a href="{{ url_for('index') }}">&larr; Back to dashboard</a></p>
-    <h2>Terminal: {{ pi.name }}</h2>
+    <h2>Terminal: {{ pi.name }} <span id="connection-status" class="connection-status"></span></h2>
     <div id="terminal"></div>
 </section>
 
@@ -13,9 +13,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
 <script>
 const piId = {{ pi.id }};
-const token = "{{ token }}";
+const piName = "{{ pi.name }}";
 const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-const wsUrl = wsProtocol + '//' + location.host + '/ws/terminal/' + piId + '?token=' + token;
 
 const term = new Terminal({
     cursorBlink: true,
@@ -25,14 +24,52 @@ const term = new Terminal({
 term.open(document.getElementById('terminal'));
 
 let ws;
-function connect() {
-    ws = new WebSocket(wsUrl);
-    ws.onopen = () => term.writeln('Connected to {{ pi.name }}...');
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+const reconnectDelay = 2000;
+
+function setStatus(text, cls) {
+    const el = document.getElementById('connection-status');
+    el.textContent = text;
+    el.className = 'connection-status connection-status-' + (cls || '');
+}
+
+function getWsUrl(token) {
+    return wsProtocol + '//' + location.host + '/ws/terminal/' + piId + '?token=' + token;
+}
+
+function connect(token) {
+    ws = new WebSocket(getWsUrl(token));
+    ws.onopen = () => {
+        reconnectAttempts = 0;
+        setStatus('', 'connected');
+        term.writeln('Connected to ' + piName + '...');
+    };
     ws.onmessage = (e) => term.write(e.data);
     ws.onerror = () => term.writeln('\r\nConnection error.');
-    ws.onclose = () => term.writeln('\r\nDisconnected.');
+    ws.onclose = () => {
+        setStatus('(Disconnected)', 'disconnected');
+        term.writeln('\r\nDisconnected.');
+        if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            setStatus('(Reconnecting...)', 'reconnecting');
+            term.writeln('Reconnecting in ' + (reconnectDelay / 1000) + 's...');
+            setTimeout(reconnect, reconnectDelay);
+        }
+    };
 }
-connect();
+
+function reconnect() {
+    fetch('/api/terminal-token/' + piId, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.token) connect(data.token);
+            else term.writeln('\r\nReconnect failed. Refresh the page.');
+        })
+        .catch(() => term.writeln('\r\nReconnect failed. Refresh the page.'));
+}
+
+connect("{{ token }}");
 
 term.onData((data) => {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);

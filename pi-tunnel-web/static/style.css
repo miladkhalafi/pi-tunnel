@@ -98,6 +98,59 @@ code {
   font-family: monospace;
 }
 
+.script-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.script-block pre {
+  flex: 1;
+  min-width: 200px;
+}
+
+.copy-script-btn {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-width: 90%;
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+.toast-success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.toast-error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.toast-info {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .terminal-section {
   max-width: none;
 }
@@ -108,4 +161,22 @@ code {
   padding: 0.5rem;
   background: #1e1e1e;
   border-radius: 4px;
+}
+
+.connection-status {
+  font-size: 0.85rem;
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+.connection-status-connected {
+  color: #0a0;
+}
+
+.connection-status-disconnected {
+  color: #999;
+}
+
+.connection-status-reconnecting {
+  color: #c80;
 }

@@ -1,5 +1,6 @@
 """WebSocket + SSH bridge for web terminal."""
 import json
+import logging
 import os
 import threading
 import paramiko
@@ -8,6 +9,8 @@ from flask_sock import Sock, ConnectionClosed
 
 from models import get_pi_by_id
 from terminal_auth import validate_token
+
+logger = logging.getLogger(__name__)
 
 SSH_HOST = os.environ.get("SSH_HOST", "pi-tunnel")
 SSH_USERNAME = os.environ.get("SSH_USERNAME", "pi")
@@ -34,7 +37,9 @@ def run_terminal(ws, pi_id: int):
 
     try:
         client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # WarningPolicy: log unknown host keys but allow connection (internal Docker network)
+        # Prefer RejectPolicy + known_hosts volume for stricter environments
+        client.set_missing_host_key_policy(paramiko.WarningPolicy())
         client.connect(
             SSH_HOST,
             port=port,
@@ -43,6 +48,7 @@ def run_terminal(ws, pi_id: int):
             allow_agent=False,
             look_for_keys=False,
         )
+        logger.info("SSH connected to %s:%s (pi_id=%s)", SSH_HOST, port, pi_id)
         channel = client.invoke_shell(term="xterm-256color", width=80, height=24)
         channel.settimeout(0.1)
 

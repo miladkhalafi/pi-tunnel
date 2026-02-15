@@ -3,12 +3,14 @@
 {% block title %}Pi Tunnel - Dashboard{% endblock %}
 
 {% block content %}
+<div id="toast" class="toast" aria-live="polite"></div>
+
 <section class="settings">
     <h2>Settings</h2>
     <form id="settings-form">
         <label for="server_public_key">Server public key (for Pi to accept SSH from server):</label>
         <textarea id="server_public_key" name="server_public_key" rows="3" placeholder="ssh-ed25519 AAAAC3...">{{ server_public_key or '' }}</textarea>
-        <button type="submit">Save</button>
+        <button type="submit" id="settings-btn">Save</button>
     </form>
 </section>
 
@@ -16,7 +18,7 @@
     <h2>Add Raspberry Pi</h2>
     <form id="create-form">
         <input type="text" id="pi-name" name="name" placeholder="Pi name (e.g. pi-home)" required>
-        <button type="submit">Create</button>
+        <button type="submit" id="create-btn">Create</button>
     </form>
 </section>
 
@@ -28,7 +30,7 @@
                 <th>Name</th>
                 <th>Port</th>
                 <th>Status</th>
-                <th>Registration URL</th>
+                <th>Registration</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -46,7 +48,8 @@
                 </td>
                 <td>
                     <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
-                    <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}">Copy</button>
+                    <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
+                    <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
                 </td>
                 <td>
                     {% if pi.public_key %}
@@ -65,36 +68,72 @@
 </section>
 
 <script>
+function showToast(message, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast toast-' + (type || 'info');
+    toast.hidden = false;
+    setTimeout(() => { toast.hidden = true; toast.className = 'toast'; }, 4000);
+}
+
+function setLoading(btn, loading) {
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.dataset.originalText = btn.dataset.originalText || btn.textContent;
+    btn.textContent = loading ? '...' : btn.dataset.originalText;
+}
+
 document.getElementById('settings-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ server_public_key: document.getElementById('server_public_key').value })
-    });
-    if (res.ok) alert('Settings saved.');
+    const btn = document.getElementById('settings-btn');
+    setLoading(btn, true);
+    try {
+        const res = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ server_public_key: document.getElementById('server_public_key').value })
+        });
+        if (res.ok) showToast('Settings saved.', 'success');
+        else showToast('Failed to save.', 'error');
+    } finally {
+        setLoading(btn, false);
+    }
 });
 
 document.getElementById('create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('pi-name').value.trim() || 'pi';
-    const res = await fetch('/api/pis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ name })
-    });
-    const data = await res.json();
-    if (res.ok) location.reload();
-    else alert(data.error || 'Failed');
+    const btn = document.getElementById('create-btn');
+    setLoading(btn, true);
+    try {
+        const res = await fetch('/api/pis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name: document.getElementById('pi-name').value.trim() || 'pi' })
+        });
+        const data = await res.json();
+        if (res.ok) location.reload();
+        else showToast(data.error || 'Failed', 'error');
+    } finally {
+        setLoading(btn, false);
+    }
 });
 
 document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         navigator.clipboard.writeText(btn.dataset.url);
         btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
+        setTimeout(() => btn.textContent = 'Copy URL', 2000);
+    });
+});
+
+document.querySelectorAll('.copy-script-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const cmd = 'curl -sSL ' + btn.dataset.scriptUrl + ' | bash';
+        navigator.clipboard.writeText(cmd);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy script', 2000);
     });
 });
 
@@ -102,8 +141,18 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
         if (!confirm('Delete this Pi?')) return;
         const id = btn.dataset.id;
-        const res = await fetch(`/api/pis/${id}`, { method: 'DELETE', credentials: 'include' });
-        if (res.ok) document.querySelector(`tr[data-id="${id}"]`).remove();
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/pis/${id}`, { method: 'DELETE', credentials: 'include' });
+            if (res.ok) {
+                document.querySelector(`tr[data-id="${id}"]`).remove();
+                showToast('Pi deleted.', 'success');
+            } else {
+                showToast('Failed to delete.', 'error');
+            }
+        } finally {
+            btn.disabled = false;
+        }
     });
 });
 </script>
