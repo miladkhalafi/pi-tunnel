@@ -6,7 +6,8 @@
 FROM alpine:3.19
 RUN apk add --no-cache openssh-server && \
     adduser -D -s /sbin/nologin pitunnel && \
-    mkdir -p /home/pitunnel/.ssh && chmod 700 /home/pitunnel/.ssh
+    mkdir -p /home/pitunnel/.ssh && chmod 700 /home/pitunnel/.ssh && \
+    ssh-keygen -A
 COPY sshd_config /etc/ssh/sshd_config
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
