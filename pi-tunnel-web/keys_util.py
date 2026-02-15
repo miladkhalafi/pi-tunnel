@@ -3,7 +3,8 @@ import logging
 import os
 from pathlib import Path
 
-import paramiko
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,13 @@ def ensure_ssh_keys() -> None:
 
     try:
         fallback.parent.mkdir(parents=True, exist_ok=True)
-        key = paramiko.Ed25519Key.generate()
-        key.write_private_key_file(str(fallback))
+        key = ed25519.Ed25519PrivateKey.generate()
+        pem_bytes = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.OpenSSH,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        fallback.write_bytes(pem_bytes)
         fallback.chmod(0o600)
     except Exception as e:
         logger.warning("Could not auto-generate SSH key: %s", e)
