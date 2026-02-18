@@ -105,12 +105,10 @@ def get_pi_by_id(pi_id: int) -> dict | None:
 
 
 def register_public_key(token: str, public_key: str) -> bool:
-    """Store public key for Pi and update authorized_keys file."""
+    """Store public key for Pi and update authorized_keys file. Allows re-registration to update key."""
     pi = get_pi_by_token(token)
     if not pi:
         return False
-    if pi["public_key"]:
-        return True  # Already registered
     with get_db() as conn:
         conn.execute(
             "UPDATE pis SET public_key = ? WHERE token = ?",

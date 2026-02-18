@@ -49,7 +49,7 @@ sudo systemctl status ssh-reverse-tunnel.service
 
 Common failures:
 - **Connection refused** → Pi can't reach server (firewall, wrong host)
-- **Permission denied** → Pi's key not in server's authorized_keys (re-run registration)
+- **Permission denied** → Pi's key not in server's authorized_keys (re-run registration script)
 - **Host key verification failed** → Add server to known_hosts or use `-o StrictHostKeyChecking=no` (autossh handles this)
 
 ### 5. Username mismatch (Raspberry Pi OS Bookworm+)
@@ -118,3 +118,41 @@ ssh -v -p 10022 pi@localhost   # from host; replace port with Pi's assigned port
 ```
 
 Verbose SSH output (`-v`) will show whether the banner is HTTP (wrong proxy) or SSH (correct path).
+
+---
+
+## Error: "Permission denied (publickey,keyboard-interactive)"
+
+The Pi's SSH key is not in the server's `authorized_keys`. Re-register to update the key.
+
+### 1. Re-run the registration script on the Pi
+
+The script now updates the key even if the Pi was registered before. Run it again:
+
+```bash
+curl -sSL https://YOUR-DASHBOARD-URL/register/YOUR_TOKEN/script | bash
+```
+
+### 2. Verify the key is in authorized_keys (on the server)
+
+```bash
+# Your Pi's public key (run on Pi):
+cat ~/.ssh/id_ed25519.pub
+
+# Server's authorized_keys (run on server host, in project directory):
+cat ./data/authorized_keys
+```
+
+The Pi's key line should appear in `authorized_keys`. If not, the web and SSH containers may be on different hosts—both must share the same `./data` volume.
+
+### 3. Restart containers after manual key add
+
+If you added the key manually:
+
+```bash
+docker restart pi-tunnel pi-tunnel-web
+```
+
+### 4. Ensure WEB_URL / SSH_TUNNEL_HOST point to the same server
+
+If the dashboard (`WEB_URL`) and SSH host (`SSH_TUNNEL_HOST` or derived from `WEB_URL`) are on different machines, the `authorized_keys` written by the web app won't reach the SSH server. Keep both on the same host, or set up shared storage for `./data`.
