@@ -159,4 +159,4 @@ If the dashboard (`WEB_URL`) and SSH host (`SSH_TUNNEL_HOST` or derived from `WE
 
 ### 5. StrictModes and file ownership
 
-The web app writes `authorized_keys`; that can change file ownership so sshd rejects keys. The pi-tunnel-sshd image uses `StrictModes no` to avoid this. If you use a custom sshd_config, add `StrictModes no` under the main config block.
+OpenSSH rejects keys if the `.ssh` directory or `authorized_keys` is not owned by the target user. In Alpine/Docker, `.ssh` is often owned by root. The pi-tunnel-sshd entrypoint fixes this with `chown -R pitunnel:pitunnel`. The image also uses `StrictModes no` because the web app writes `authorized_keys` and can change its ownership. If using a custom sshd_config, add `StrictModes no` and ensure the entrypoint chowns `/home/pitunnel/.ssh` to pitunnel.
