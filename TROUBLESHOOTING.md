@@ -156,3 +156,7 @@ docker restart pi-tunnel pi-tunnel-web
 ### 4. Ensure WEB_URL / SSH_TUNNEL_HOST point to the same server
 
 If the dashboard (`WEB_URL`) and SSH host (`SSH_TUNNEL_HOST` or derived from `WEB_URL`) are on different machines, the `authorized_keys` written by the web app won't reach the SSH server. Keep both on the same host, or set up shared storage for `./data`.
+
+### 5. StrictModes and file ownership
+
+The web app writes `authorized_keys`; that can change file ownership so sshd rejects keys. The pi-tunnel-sshd image uses `StrictModes no` to avoid this. If you use a custom sshd_config, add `StrictModes no` under the main config block.
