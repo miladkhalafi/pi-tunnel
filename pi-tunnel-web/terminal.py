@@ -1,7 +1,9 @@
 """WebSocket + SSH bridge for web terminal."""
+import errno
 import json
 import logging
 import os
+import socket
 import threading
 import paramiko
 from flask import request
@@ -106,7 +108,30 @@ def run_terminal(ws, pi_id: int):
         stop.set()
         t.join(timeout=1)
     except paramiko.SSHException as e:
-        ws.send(f"Error: SSH connection failed: {e}")
+        err_msg = str(e).lower()
+        if "unable to connect" in err_msg or "connection refused" in err_msg:
+            ws.send(
+                f"Error: The Pi's reverse tunnel is not active (port {port} not listening). "
+                "Run the registration script on the Pi and ensure ssh-reverse-tunnel.service is running. "
+                "See TROUBLESHOOTING.md"
+            )
+        elif "kex_exchange_identification" in err_msg:
+            ws.send(
+                "Error: SSH key exchange failed. Common causes: (1) Wrong port—ensure you're not routing SSH through HTTP. "
+                "(2) Server overloaded—check MaxStartups in sshd_config. (3) Tunnel unstable—check journalctl -u ssh-reverse-tunnel on the Pi. "
+                "See TROUBLESHOOTING.md"
+            )
+        else:
+            ws.send(f"Error: SSH connection failed: {e}")
+    except (OSError, socket.error) as e:
+        if getattr(e, "errno", None) == errno.ECONNREFUSED:
+            ws.send(
+                f"Error: Connection refused on port {port}. "
+                "The Pi's reverse tunnel is not active. Run the registration script on the Pi "
+                "and ensure ssh-reverse-tunnel.service is running. See TROUBLESHOOTING.md"
+            )
+        else:
+            ws.send(f"Error: {e}")
     except Exception as e:
         ws.send(f"Error: {e}")
 
