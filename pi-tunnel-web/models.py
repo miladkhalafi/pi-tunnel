@@ -153,7 +153,9 @@ def sync_authorized_keys():
     for pi in pis:
         if pi["public_key"]:
             # Format: key comment (pi name for clarity)
-            lines.append(f"{pi['public_key'].strip()} pi-{pi['name']}\n")
+            # Sanitize name: newlines would corrupt authorized_keys format
+            safe_name = (pi["name"] or "").replace("\n", "").replace("\r", "").strip() or "pi"
+            lines.append(f"{pi['public_key'].strip()} pi-{safe_name}\n")
     path.write_text("".join(lines) if lines else "")
 
 

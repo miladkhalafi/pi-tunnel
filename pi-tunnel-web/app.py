@@ -9,6 +9,18 @@ from urllib.parse import urlparse
 import paramiko
 
 logger = logging.getLogger(__name__)
+
+# OpenSSH public key types accepted for Pi registration
+PUBKEY_PREFIXES = (
+    "ssh-ed25519 ",
+    "ssh-rsa ",
+    "ecdsa-sha2-nistp256 ",
+    "ecdsa-sha2-nistp384 ",
+    "ecdsa-sha2-nistp521 ",
+    "sk-ssh-ed25519@openssh.com ",
+    "sk-ecdsa-sha2-nistp256@openssh.com ",
+)
+
 from flask import Flask, render_template, request, jsonify, Response
 from flask_sock import Sock
 
@@ -288,7 +300,7 @@ def register_submit(token):
     if not data or "public_key" not in data:
         return jsonify({"error": "public_key required"}), 400
     public_key = data["public_key"].strip()
-    if not public_key or not public_key.startswith(("ssh-ed25519 ", "ssh-rsa ")):
+    if not public_key or not public_key.startswith(PUBKEY_PREFIXES):
         return jsonify({"error": "Invalid public key format"}), 400
     if register_public_key(token, public_key):
         return jsonify({"ok": True, "port": pi["port"]})
@@ -305,7 +317,7 @@ def unregister_submit(token):
     if not data or "public_key" not in data:
         return jsonify({"error": "public_key required"}), 400
     public_key = data["public_key"].strip()
-    if not public_key or not public_key.startswith(("ssh-ed25519 ", "ssh-rsa ")):
+    if not public_key or not public_key.startswith(PUBKEY_PREFIXES):
         return jsonify({"error": "Invalid public key format"}), 400
     if unregister_public_key(token, public_key):
         return jsonify({"ok": True})
