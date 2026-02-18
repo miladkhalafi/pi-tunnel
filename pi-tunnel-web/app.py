@@ -24,6 +24,7 @@ PUBKEY_PREFIXES = (
 from flask import Flask, render_template, request, jsonify, Response
 from flask_sock import Sock
 
+from diagnostics import check_key, run_diagnostics
 from keys_util import ensure_ssh_keys, get_effective_private_key_path
 from models import (
     init_db,
@@ -236,6 +237,27 @@ def api_save_settings():
     if "server_public_key" in data:
         set_setting("server_public_key", data["server_public_key"].strip())
     return jsonify({"ok": True})
+
+
+@app.route("/api/diagnostics")
+@requires_auth
+def api_diagnostics():
+    """Return key diagnostics: authorized_keys status, per-Pi sync status."""
+    return jsonify(run_diagnostics())
+
+
+@app.route("/api/diagnostics/check-key", methods=["POST"])
+@requires_auth
+def api_check_key():
+    """Check if a pasted public key matches any Pi and/or is in authorized_keys."""
+    data = request.get_json() or {}
+    public_key = data.get("public_key", "").strip()
+    if not public_key:
+        return jsonify({"error": "public_key required"}), 400
+    result = check_key(public_key)
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
 
 
 @app.route("/register/<token>")

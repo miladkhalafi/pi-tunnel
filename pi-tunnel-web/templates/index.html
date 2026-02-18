@@ -14,6 +14,50 @@
     </form>
 </section>
 
+<section class="diagnostics">
+    <details>
+        <summary><h2>Key diagnostics</h2></summary>
+        <p class="diagnostics-help">Troubleshoot "Permission denied (publickey)" and key sync issues.</p>
+        <div class="diagnostics-actions">
+            <button type="button" id="diagnostics-refresh-btn">Refresh</button>
+        </div>
+        <div id="diagnostics-content" class="diagnostics-content">
+            <p class="diagnostics-loading">Loading...</p>
+        </div>
+        <div class="diagnostics-ak-summary" id="diagnostics-ak-summary" hidden></div>
+        <div class="diagnostics-pi-table-wrapper" id="diagnostics-pi-table-wrapper" hidden>
+            <table class="diagnostics-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Fingerprint</th>
+                        <th>In authorized_keys</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="diagnostics-pi-tbody"></tbody>
+            </table>
+        </div>
+        <div class="check-key-form">
+            <h3>Check key</h3>
+            <p>Paste a public key from the Pi (e.g. output of <code>cat ~/.ssh/id_ed25519.pub</code>) to verify it matches a registered Pi and is in authorized_keys.</p>
+            <div class="diagnostics-copy-cmds">
+                <div>
+                    <code>cat ~/.ssh/id_ed25519.pub</code>
+                    <button type="button" class="copy-cmd-btn" data-cmd="cat ~/.ssh/id_ed25519.pub">Copy</button>
+                </div>
+                <div>
+                    <code>ssh-keygen -lf ~/.ssh/id_ed25519.pub</code>
+                    <button type="button" class="copy-cmd-btn" data-cmd="ssh-keygen -lf ~/.ssh/id_ed25519.pub">Copy</button>
+                </div>
+            </div>
+            <textarea id="check-key-input" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... pi@hostname" rows="3"></textarea>
+            <button type="button" id="check-key-btn">Check</button>
+            <div id="check-key-result" class="check-key-result" hidden></div>
+        </div>
+    </details>
+</section>
+
 <section class="create">
     <h2>Add Raspberry Pi</h2>
     <form id="create-form">
@@ -195,6 +239,90 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
         } finally {
             btn.disabled = false;
         }
+    });
+});
+
+async function loadDiagnostics() {
+    const content = document.getElementById('diagnostics-content');
+    const akSummary = document.getElementById('diagnostics-ak-summary');
+    const piTable = document.getElementById('diagnostics-pi-table-wrapper');
+    content.innerHTML = '<p class="diagnostics-loading">Loading...</p>';
+    akSummary.hidden = true;
+    piTable.hidden = true;
+    try {
+        const res = await fetch('/api/diagnostics', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load');
+        content.innerHTML = data.sync_ok
+            ? '<p class="diagnostics-ok">All keys are in sync.</p>'
+            : '<p class="diagnostics-warning">Some Pi keys are missing from authorized_keys. Re-run the registration script on affected Pis.</p>';
+        akSummary.hidden = false;
+        akSummary.innerHTML = `<strong>authorized_keys</strong>: ${data.authorized_keys.path} — exists: ${data.authorized_keys.exists}, readable: ${data.authorized_keys.readable}, ${data.authorized_keys.line_count} key(s)`;
+        const tbody = document.getElementById('diagnostics-pi-tbody');
+        tbody.innerHTML = data.pis.map(pi => `
+            <tr>
+                <td>${escapeHtml(pi.name)}</td>
+                <td><code class="fingerprint">${pi.fingerprint ? escapeHtml(pi.fingerprint) : '—'}</code></td>
+                <td>${pi.in_authorized_keys ? 'Yes' : 'No'}</td>
+                <td><span class="status status-${pi.status === 'OK' ? 'registered' : pi.status === 'Missing' ? 'pending' : 'pending'}">${escapeHtml(pi.status)}</span></td>
+            </tr>
+        `).join('');
+        piTable.hidden = false;
+    } catch (e) {
+        content.innerHTML = `<p class="diagnostics-error">${escapeHtml(e.message)}</p>`;
+    }
+}
+
+function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+
+document.getElementById('diagnostics-refresh-btn').addEventListener('click', loadDiagnostics);
+
+document.querySelector('.diagnostics details').addEventListener('toggle', (e) => {
+    if (e.target.open) loadDiagnostics();
+});
+
+document.getElementById('check-key-btn').addEventListener('click', async () => {
+    const input = document.getElementById('check-key-input');
+    const result = document.getElementById('check-key-result');
+    const key = input.value.trim();
+    if (!key) {
+        showToast('Paste a public key first.', 'error');
+        return;
+    }
+    result.hidden = true;
+    try {
+        const res = await fetch('/api/diagnostics/check-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ public_key: key })
+        });
+        const data = await res.json();
+        result.hidden = false;
+        if (data.error) {
+            result.innerHTML = `<p class="check-key-error">${escapeHtml(data.error)}</p>`;
+            return;
+        }
+        let html = `<p><strong>Fingerprint:</strong> <code>${escapeHtml(data.fingerprint)}</code></p>`;
+        html += `<p>Matches Pi: ${data.matches_pi ? escapeHtml(data.matches_pi.name) + ' (id ' + data.matches_pi.id + ')' : 'None'}</p>`;
+        html += `<p>In authorized_keys: ${data.in_authorized_keys ? 'Yes' : 'No'}</p>`;
+        result.innerHTML = html;
+    } catch (e) {
+        result.hidden = false;
+        result.innerHTML = `<p class="check-key-error">${escapeHtml(e.message)}</p>`;
+    }
+});
+
+document.querySelectorAll('.copy-cmd-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.cmd);
+        const prev = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = prev, 2000);
     });
 });
 </script>
