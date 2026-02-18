@@ -1,6 +1,6 @@
 # Run the Pi tunnel SSH server and web UI on your host
 # 1. Set IMAGE and WEB_IMAGE in .env (or use defaults)
-# 2. Set SERVER_URL (e.g. https://your-server.com) for registration links
+# 2. Set WEB_URL or SERVER_URL for registration links; optionally SSH_TUNNEL_HOST for separate SSH host
 # 3. docker compose up -d
 
 services:
@@ -45,6 +45,8 @@ services:
       - "8080:8080"
     environment:
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - WEB_URL=${WEB_URL:-}
+      - SSH_TUNNEL_HOST=${SSH_TUNNEL_HOST:-}
       - SERVER_URL=${SERVER_URL:-}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}

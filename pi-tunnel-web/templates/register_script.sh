@@ -68,7 +68,7 @@ if [ -z "$SERVER_HOST" ]; then
   if [ -t 0 ]; then
     read -p "Server domain or hostname: " SERVER_HOST
   fi
-  [ -z "$SERVER_HOST" ] && { echo "Server domain required. Set SERVER_URL in server .env or run interactively."; exit 1; }
+  [ -z "$SERVER_HOST" ] && { echo "Server domain required. Set WEB_URL or SERVER_URL in server .env or run interactively."; exit 1; }
 fi
 # SSH port: use injected value or prompt only when interactive
 if [ -z "$SERVER_SSH_PORT" ]; then

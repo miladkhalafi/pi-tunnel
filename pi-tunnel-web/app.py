@@ -134,10 +134,11 @@ def health():
 
 
 def get_base_url():
-    """Base URL for registration links (SERVER_URL or request host)."""
-    url = os.environ.get("SERVER_URL", "").rstrip("/")
-    if url:
-        return url
+    """Base URL for registration links (WEB_URL, SERVER_URL, or request host)."""
+    for env_var in ("WEB_URL", "SERVER_URL"):
+        url = os.environ.get(env_var, "").rstrip("/")
+        if url:
+            return url
     try:
         return (request.host_url or "").rstrip("/") or ""
     except RuntimeError:
@@ -145,7 +146,10 @@ def get_base_url():
 
 
 def get_server_host():
-    """Extract host (domain or IP) from base URL for tunnel connection."""
+    """Host for SSH tunnel (SSH_TUNNEL_HOST or derived from base URL)."""
+    host = os.environ.get("SSH_TUNNEL_HOST", "").strip()
+    if host:
+        return host
     base = get_base_url()
     if not base:
         return ""

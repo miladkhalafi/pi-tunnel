@@ -63,7 +63,7 @@ Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
 cp .env.example .env
-# Edit .env: set SERVER_URL, SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
+# Edit .env: set WEB_URL or SERVER_URL, SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD
 ```
 
 Start the services:
@@ -102,7 +102,7 @@ The script will:
 - Add the server's public key to the Pi's `authorized_keys`
 - Install autossh and create a systemd service for the tunnel
 
-**Headless mode:** When `SERVER_URL` is set on the server, the script runs fully non-interactive with no prompts. The server host and SSH port (2222) are injected into the script.
+**Headless mode:** When `WEB_URL` or `SERVER_URL` is set on the server, the script runs fully non-interactive with no prompts. The server host and SSH port (2222) are injected into the script.
 
 ### 5. Connect to the Pi
 
@@ -129,7 +129,9 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SERVER_URL` | Base URL for registration links and tunnel target (e.g. `https://your-server.com`). Required for headless registration | Request host |
+| `WEB_URL` | Dashboard base URL for registration links, script, API (e.g. `https://dashboard.example.com`) | `SERVER_URL` or request host |
+| `SSH_TUNNEL_HOST` | Host where Pis connect for reverse SSH tunnel. Use when SSH runs on a different host than the web app | Host from `WEB_URL` |
+| `SERVER_URL` | Legacy fallback for `WEB_URL` (e.g. `https://your-server.com`). Required for headless registration when `WEB_URL` not set | Request host |
 | `SECRET_KEY` | Flask secret key (set in production) | `change-me-in-production` |
 | `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
 | `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
@@ -152,6 +154,29 @@ Use the port shown in the web UI for that Pi. Replace `pi` with the username on 
 | 8080 | Web UI |
 | 2222 | SSH (Pi connects here) |
 | 10022–10031 | Tunnel endpoints (one per Pi) |
+
+## Separate Domains
+
+You can use different domains for the dashboard (registration, API) and the SSH tunnel:
+
+- **Dashboard domain** (`WEB_URL`): Registration links, script, and API. Users access the dashboard here.
+- **SSH tunnel host** (`SSH_TUNNEL_HOST`): Where Pis connect for the reverse tunnel. Use when SSH runs on a different host.
+
+**Single host** (dashboard and SSH on same server):
+
+```
+WEB_URL=https://dashboard.example.com
+# SSH_TUNNEL_HOST not set – uses dashboard.example.com for tunnel
+```
+
+**Separate hosts** (SSH on dedicated server):
+
+```
+WEB_URL=https://dashboard.example.com
+SSH_TUNNEL_HOST=ssh.example.com
+```
+
+Configure your reverse proxy: `dashboard.example.com` -> pi-tunnel-web:8080. For SSH, ensure `ssh.example.com:2222` routes to pi-tunnel:2222 (or the same host if colocated).
 
 ## Building from Source
 
