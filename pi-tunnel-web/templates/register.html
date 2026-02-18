@@ -8,7 +8,7 @@
     <p>On your Raspberry Pi (headless), run:</p>
     <div class="script-block">
         <pre><code id="script-cmd">curl -sSL {{ script_url }} | bash</code></pre>
-        <button type="button" class="copy-script-btn" data-cmd="curl -sSL {{ script_url }} | bash">Copy command</button>
+        <button type="button" class="copy-script-btn" data-cmd="curl -sSL {{ script_url }} | bash" data-label="Copy install">Copy install</button>
     </div>
     <p>The script will:</p>
     <ul>
@@ -18,15 +18,23 @@
         <li>Configure the reverse SSH tunnel (autossh systemd service)</li>
     </ul>
     <p>When <code>WEB_URL</code> or <code>SERVER_URL</code> is set on the server, the script runs fully headless with no prompts.</p>
+    <h3>Uninstall</h3>
+    <p>To remove the tunnel from the Pi, run:</p>
+    <div class="script-block">
+        <pre><code id="uninstall-cmd">curl -sSL {{ base_url }}/register/{{ pi.token }}/uninstall-script | bash</code></pre>
+        <button type="button" class="copy-script-btn" data-cmd="curl -sSL {{ base_url }}/register/{{ pi.token }}/uninstall-script | bash" data-label="Copy uninstall">Copy uninstall</button>
+    </div>
 </section>
 
 <script>
-document.querySelector('.copy-script-btn').addEventListener('click', () => {
-    const cmd = document.querySelector('#script-cmd').textContent;
-    navigator.clipboard.writeText(cmd);
-    const btn = document.querySelector('.copy-script-btn');
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = 'Copy command', 2000);
+document.querySelectorAll('.copy-script-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const cmd = btn.dataset.cmd;
+        const label = btn.dataset.label || 'Copy';
+        navigator.clipboard.writeText(cmd);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = label, 2000);
+    });
 });
 </script>
 {% endblock %}

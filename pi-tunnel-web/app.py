@@ -20,6 +20,7 @@ from models import (
     get_pi_by_token,
     get_pi_by_id,
     register_public_key,
+    unregister_public_key,
     delete_pi,
     get_setting,
     set_setting,
@@ -265,6 +266,18 @@ def register_server_key(token):
     return key.strip(), 200, {"Content-Type": "text/plain"}
 
 
+@app.route("/register/<token>/uninstall-script")
+def uninstall_script(token):
+    pi = get_pi_by_token(token)
+    if not pi:
+        return "Invalid or expired registration link.", 404
+    base_url = get_base_url()
+    return render_template("uninstall_script.sh", token=token, base_url=base_url), 200, {
+        "Content-Type": "text/plain",
+        "Content-Disposition": "inline",
+    }
+
+
 @app.route("/register/<token>", methods=["POST"])
 @rate_limit_register
 def register_submit(token):
@@ -280,6 +293,23 @@ def register_submit(token):
     if register_public_key(token, public_key):
         return jsonify({"ok": True, "port": pi["port"]})
     return jsonify({"error": "Registration failed"}), 500
+
+
+@app.route("/register/<token>/unregister", methods=["POST"])
+@rate_limit_register
+def unregister_submit(token):
+    pi = get_pi_by_token(token)
+    if not pi:
+        return jsonify({"error": "Invalid token"}), 404
+    data = request.get_json()
+    if not data or "public_key" not in data:
+        return jsonify({"error": "public_key required"}), 400
+    public_key = data["public_key"].strip()
+    if not public_key or not public_key.startswith(("ssh-ed25519 ", "ssh-rsa ")):
+        return jsonify({"error": "Invalid public key format"}), 400
+    if unregister_public_key(token, public_key):
+        return jsonify({"ok": True})
+    return jsonify({"error": "Unregister failed (key mismatch or not registered)"}), 400
 
 
 if __name__ == "__main__":

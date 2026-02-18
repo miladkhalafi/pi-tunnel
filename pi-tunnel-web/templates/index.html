@@ -51,6 +51,7 @@
                         <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
                         <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
                         <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
+                        <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
                     </td>
                     <td>
                         {% if pi.public_key %}
@@ -85,6 +86,7 @@
             <div class="pi-card-actions">
                 <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
                 <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
+                <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
                 {% if pi.public_key %}
                 <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
                 {% endif %}
@@ -164,6 +166,15 @@ document.querySelectorAll('.copy-script-btn').forEach(btn => {
         navigator.clipboard.writeText(cmd);
         btn.textContent = 'Copied!';
         setTimeout(() => btn.textContent = 'Copy script', 2000);
+    });
+});
+
+document.querySelectorAll('.copy-uninstall-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const cmd = 'curl -sSL ' + btn.dataset.scriptUrl + ' | bash';
+        navigator.clipboard.writeText(cmd);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy uninstall', 2000);
     });
 });
 

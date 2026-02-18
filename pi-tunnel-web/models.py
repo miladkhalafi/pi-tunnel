@@ -118,6 +118,22 @@ def register_public_key(token: str, public_key: str) -> bool:
     return True
 
 
+def unregister_public_key(token: str, public_key: str) -> bool:
+    """Clear public key for Pi if it matches. Used by uninstall script."""
+    pi = get_pi_by_token(token)
+    if not pi or not pi.get("public_key"):
+        return False
+    if pi["public_key"].strip() != public_key.strip():
+        return False
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE pis SET public_key = NULL WHERE token = ?",
+            (token,)
+        )
+    sync_authorized_keys()
+    return True
+
+
 def delete_pi(pi_id: int) -> bool:
     pi = get_pi_by_id(pi_id)
     if not pi:

@@ -125,6 +125,16 @@ ssh -p 10022 pi@localhost
 
 Use the port shown in the web UI for that Pi. Replace `pi` with the username on the Pi if different.
 
+### 6. Uninstall (optional)
+
+To remove the tunnel from a Pi, run on the Pi:
+
+```bash
+curl -sSL https://your-server.com/register/YOUR_TOKEN/uninstall-script | bash
+```
+
+This stops the tunnel service, unregisters the Pi from the server, and removes the server key from `authorized_keys`.
+
 ## Environment Variables
 
 | Variable | Description | Default |
