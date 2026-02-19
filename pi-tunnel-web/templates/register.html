@@ -5,19 +5,29 @@
 {% block content %}
 <section class="register">
     <h2>Register {{ pi.name }}</h2>
-    <p>On your Raspberry Pi (headless), run:</p>
-    <div class="script-block">
-        <pre><code id="script-cmd">curl -sSL {{ script_url }} | bash</code></pre>
-        <button type="button" class="copy-script-btn" data-cmd="curl -sSL {{ script_url }} | bash" data-label="Copy install">Copy install</button>
-    </div>
-    <p>The script will:</p>
-    <ul>
-        <li>Generate an SSH key if needed</li>
-        <li>Send the public key to this server</li>
-        <li>Add the server's public key to the Pi's authorized_keys</li>
-        <li>Configure the reverse SSH tunnel (autossh systemd service)</li>
-    </ul>
-    <p>When <code>WEB_URL</code> or <code>SERVER_URL</code> is set on the server, the script runs fully headless with no prompts.</p>
+    <p class="section-desc">Run the install script on your Raspberry Pi to set up the SSH tunnel.</p>
+
+    <ol class="register-steps">
+        <li>
+            <strong>On your Raspberry Pi</strong>, run this command:
+            <div class="script-block script-block-prominent">
+                <pre><code id="script-cmd">curl -sSL {{ script_url }} | bash</code></pre>
+                <button type="button" class="copy-script-btn copy-script-btn-primary" data-cmd="curl -sSL {{ script_url }} | bash" data-label="Copy install">Copy install</button>
+            </div>
+        </li>
+        <li>
+            <strong>The script will:</strong>
+            <ul>
+                <li>Generate an SSH key if needed</li>
+                <li>Send the public key to this server</li>
+                <li>Add the server's public key to the Pi's authorized_keys</li>
+                <li>Configure the reverse SSH tunnel (autossh systemd service)</li>
+            </ul>
+        </li>
+    </ol>
+
+    <p class="register-note">When <code>WEB_URL</code> or <code>SERVER_URL</code> is set on the server, the script runs fully headless with no prompts.</p>
+
     <h3>Uninstall</h3>
     <p>To remove the tunnel from the Pi, run:</p>
     <div class="script-block">

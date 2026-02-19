@@ -4,70 +4,31 @@
 
 {% block content %}
 <div id="toast" class="toast" aria-live="polite"></div>
+<div id="delete-modal" class="modal" hidden aria-modal="true" aria-labelledby="delete-modal-title" role="dialog">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <h3 id="delete-modal-title">Delete this Pi?</h3>
+        <p class="modal-desc">This will remove the Pi from the dashboard. You can re-register it later.</p>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn modal-btn-cancel" id="delete-modal-cancel">Cancel</button>
+            <button type="button" class="modal-btn modal-btn-danger" id="delete-modal-confirm">Delete</button>
+        </div>
+    </div>
+</div>
 
-<section class="settings">
-    <h2>Settings</h2>
-    <form id="settings-form">
-        <label for="server_public_key">Server public key (for Pi to accept SSH from server):</label>
-        <textarea id="server_public_key" name="server_public_key" rows="3" placeholder="ssh-ed25519 AAAAC3...">{{ server_public_key or '' }}</textarea>
-        <button type="submit" id="settings-btn">Save</button>
-    </form>
-</section>
-
-<section class="diagnostics">
-    <details>
-        <summary><h2>Key diagnostics</h2></summary>
-        <p class="diagnostics-help">Troubleshoot "Permission denied (publickey)" and key sync issues.</p>
-        <div class="diagnostics-actions">
-            <button type="button" id="diagnostics-refresh-btn">Refresh</button>
-        </div>
-        <div id="diagnostics-content" class="diagnostics-content">
-            <p class="diagnostics-loading">Loading...</p>
-        </div>
-        <div class="diagnostics-ak-summary" id="diagnostics-ak-summary" hidden></div>
-        <div class="diagnostics-pi-table-wrapper" id="diagnostics-pi-table-wrapper" hidden>
-            <table class="diagnostics-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Fingerprint</th>
-                        <th>In authorized_keys</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="diagnostics-pi-tbody"></tbody>
-            </table>
-        </div>
-        <div class="check-key-form">
-            <h3>Check key</h3>
-            <p>Paste a public key from the Pi (e.g. output of <code>cat ~/.ssh/id_ed25519.pub</code>) to verify it matches a registered Pi and is in authorized_keys.</p>
-            <div class="diagnostics-copy-cmds">
-                <div>
-                    <code>cat ~/.ssh/id_ed25519.pub</code>
-                    <button type="button" class="copy-cmd-btn" data-cmd="cat ~/.ssh/id_ed25519.pub">Copy</button>
-                </div>
-                <div>
-                    <code>ssh-keygen -lf ~/.ssh/id_ed25519.pub</code>
-                    <button type="button" class="copy-cmd-btn" data-cmd="ssh-keygen -lf ~/.ssh/id_ed25519.pub">Copy</button>
-                </div>
-            </div>
-            <textarea id="check-key-input" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... pi@hostname" rows="3"></textarea>
-            <button type="button" id="check-key-btn">Check</button>
-            <div id="check-key-result" class="check-key-result" hidden></div>
-        </div>
-    </details>
-</section>
-
-<section class="create">
+<section class="create section-accent" id="create-section">
     <h2>Add Raspberry Pi</h2>
+    <p class="section-desc">Register a new Pi to enable remote SSH access.</p>
     <form id="create-form">
-        <input type="text" id="pi-name" name="name" placeholder="Pi name (e.g. pi-home)" required>
+        <input type="text" id="pi-name" name="name" placeholder="e.g. pi-living-room" required>
         <button type="submit" id="create-btn">Create</button>
     </form>
 </section>
 
 <section class="pis">
     <h2>Raspberry Pis</h2>
+    <p class="section-desc">Your registered devices and their registration URLs.</p>
+    {% if pis %}
     <div class="pis-table-wrapper">
         <table>
             <thead>
@@ -104,14 +65,19 @@
                         <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
                     </td>
                 </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5">No Pis yet. Create one above.</td>
-                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon" aria-hidden="true">◉</div>
+        <h3 class="empty-state-title">No Raspberry Pis yet</h3>
+        <p class="empty-state-desc">Add your first Pi to get started with remote SSH access.</p>
+        <a href="#create-section" class="empty-state-btn" id="empty-state-add-btn">Add Pi</a>
+    </div>
+    {% endif %}
+    {% if pis %}
     <div class="pi-cards">
         {% for pi in pis %}
         <div class="pi-card" data-id="{{ pi.id }}">
@@ -137,10 +103,64 @@
                 <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
             </div>
         </div>
-        {% else %}
-        <p style="color: var(--text-muted); margin: 0;">No Pis yet. Create one above.</p>
         {% endfor %}
     </div>
+    {% endif %}
+</section>
+
+<section class="settings">
+    <h2>Settings</h2>
+    <p class="section-desc">Configure the server public key for Pi SSH authentication.</p>
+    <form id="settings-form">
+        <label for="server_public_key">Server public key (for Pi to accept SSH from server)</label>
+        <textarea id="server_public_key" name="server_public_key" rows="3" placeholder="ssh-ed25519 AAAAC3...">{{ server_public_key or '' }}</textarea>
+        <p class="form-help">Paste the server's public key so Pis can accept SSH connections from this server.</p>
+        <button type="submit" id="settings-btn">Save</button>
+    </form>
+</section>
+
+<section class="diagnostics">
+    <details>
+        <summary><h2>Key diagnostics</h2></summary>
+        <p class="diagnostics-help">Troubleshoot "Permission denied (publickey)" and key sync issues.</p>
+        <div class="diagnostics-actions">
+            <button type="button" id="diagnostics-refresh-btn">Refresh</button>
+        </div>
+        <div id="diagnostics-content" class="diagnostics-content">
+            <p class="diagnostics-loading"><span class="diagnostics-spinner"></span> Loading...</p>
+        </div>
+        <div class="diagnostics-ak-summary" id="diagnostics-ak-summary" hidden></div>
+        <div class="diagnostics-pi-table-wrapper" id="diagnostics-pi-table-wrapper" hidden>
+            <table class="diagnostics-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Fingerprint</th>
+                        <th>In authorized_keys</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="diagnostics-pi-tbody"></tbody>
+            </table>
+        </div>
+        <div class="check-key-form">
+            <h3>Check key</h3>
+            <p>Paste a public key from the Pi (e.g. output of <code>cat ~/.ssh/id_ed25519.pub</code>) to verify it matches a registered Pi and is in authorized_keys.</p>
+            <div class="diagnostics-copy-cmds">
+                <div>
+                    <code>cat ~/.ssh/id_ed25519.pub</code>
+                    <button type="button" class="copy-cmd-btn" data-cmd="cat ~/.ssh/id_ed25519.pub">Copy</button>
+                </div>
+                <div>
+                    <code>ssh-keygen -lf ~/.ssh/id_ed25519.pub</code>
+                    <button type="button" class="copy-cmd-btn" data-cmd="ssh-keygen -lf ~/.ssh/id_ed25519.pub">Copy</button>
+                </div>
+            </div>
+            <textarea id="check-key-input" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... pi@hostname" rows="3"></textarea>
+            <button type="button" id="check-key-btn">Check</button>
+            <div id="check-key-result" class="check-key-result" hidden></div>
+        </div>
+    </details>
 </section>
 
 <script>
@@ -196,20 +216,27 @@ document.getElementById('create-form').addEventListener('submit', async (e) => {
     }
 });
 
+function copyFeedback(btn, resetText) {
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = resetText;
+    }, 2000);
+}
+
 document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         navigator.clipboard.writeText(btn.dataset.url);
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy URL', 2000);
+        copyFeedback(btn, 'Copy URL');
     });
 });
 
 document.querySelectorAll('.copy-script-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        const cmd = 'curl -sSL ' + btn.dataset.scriptUrl + ' | bash';
-        navigator.clipboard.writeText(cmd);
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy script', 2000);
+        const cmd = btn.dataset.scriptUrl ? 'curl -sSL ' + btn.dataset.scriptUrl + ' | bash' : btn.dataset.cmd;
+        if (cmd) navigator.clipboard.writeText(cmd);
+        copyFeedback(btn, btn.dataset.label || 'Copy script');
     });
 });
 
@@ -217,28 +244,51 @@ document.querySelectorAll('.copy-uninstall-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = 'curl -sSL ' + btn.dataset.scriptUrl + ' | bash';
         navigator.clipboard.writeText(cmd);
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy uninstall', 2000);
+        copyFeedback(btn, 'Copy uninstall');
     });
 });
 
-document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-        if (!confirm('Delete this Pi?')) return;
-        const id = btn.dataset.id;
-        btn.disabled = true;
-        try {
-            const res = await fetch(`/api/pis/${id}`, { method: 'DELETE', credentials: 'include' });
-            if (res.ok) {
-                document.querySelector(`tr[data-id="${id}"]`)?.remove();
-                document.querySelector(`.pi-card[data-id="${id}"]`)?.remove();
-                showToast('Pi deleted.', 'success');
-            } else {
-                showToast('Failed to delete.', 'error');
-            }
-        } finally {
-            btn.disabled = false;
+let pendingDeleteId = null;
+const deleteModal = document.getElementById('delete-modal');
+const deleteModalCancel = document.getElementById('delete-modal-cancel');
+const deleteModalConfirm = document.getElementById('delete-modal-confirm');
+
+function closeDeleteModal() {
+    deleteModal.hidden = true;
+    pendingDeleteId = null;
+}
+
+deleteModalCancel.addEventListener('click', closeDeleteModal);
+deleteModal.querySelector('.modal-backdrop').addEventListener('click', closeDeleteModal);
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !deleteModal.hidden) closeDeleteModal();
+});
+
+deleteModalConfirm.addEventListener('click', async () => {
+    if (!pendingDeleteId) return;
+    const id = pendingDeleteId;
+    closeDeleteModal();
+    const btn = document.querySelector(`.delete-btn[data-id="${id}"]`);
+    if (btn) btn.disabled = true;
+    try {
+        const res = await fetch(`/api/pis/${id}`, { method: 'DELETE', credentials: 'include' });
+        if (res.ok) {
+            document.querySelector(`tr[data-id="${id}"]`)?.remove();
+            document.querySelector(`.pi-card[data-id="${id}"]`)?.remove();
+            showToast('Pi deleted.', 'success');
+        } else {
+            showToast('Failed to delete.', 'error');
         }
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+});
+
+document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        pendingDeleteId = btn.dataset.id;
+        deleteModal.hidden = false;
+        deleteModalConfirm.focus();
     });
 });
 
@@ -246,7 +296,7 @@ async function loadDiagnostics() {
     const content = document.getElementById('diagnostics-content');
     const akSummary = document.getElementById('diagnostics-ak-summary');
     const piTable = document.getElementById('diagnostics-pi-table-wrapper');
-    content.innerHTML = '<p class="diagnostics-loading">Loading...</p>';
+    content.innerHTML = '<p class="diagnostics-loading"><span class="diagnostics-spinner"></span> Loading...</p>';
     akSummary.hidden = true;
     piTable.hidden = true;
     try {
@@ -317,12 +367,16 @@ document.getElementById('check-key-btn').addEventListener('click', async () => {
     }
 });
 
+document.getElementById('empty-state-add-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('create-section')?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => document.getElementById('pi-name')?.focus(), 300);
+});
+
 document.querySelectorAll('.copy-cmd-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         navigator.clipboard.writeText(btn.dataset.cmd);
-        const prev = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = prev, 2000);
+        copyFeedback(btn, btn.textContent);
     });
 });
 </script>
