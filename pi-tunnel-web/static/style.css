@@ -665,7 +665,13 @@ section h2 {
   font-size: 0.9375rem;
 }
 
-/* Pis panel - create form compact, no nested boxes */
+/* Pis panel - flat content area, no outer card */
+.pis-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 .pis-panel .create-inline {
   margin-bottom: 1rem;
 }
@@ -685,6 +691,33 @@ section h2 {
 
 [data-theme="light"] .pis-panel .empty-state {
   background: transparent;
+}
+
+/* Pis panel - lighter table, no nested box feel */
+.pis-panel .pis-table-wrapper tbody tr:nth-child(even) td {
+  background: transparent;
+}
+
+[data-theme="light"] .pis-panel .pis-table-wrapper tbody tr:nth-child(even) td {
+  background: transparent;
+}
+
+.pis-panel .pis-table-wrapper tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="light"] .pis-panel .pis-table-wrapper tbody tr:hover td {
+  background: rgba(31, 35, 40, 0.04) !important;
+}
+
+.pis-panel .pis-table-wrapper th,
+.pis-panel .pis-table-wrapper td {
+  border-bottom-color: rgba(48, 54, 61, 0.5);
+}
+
+[data-theme="light"] .pis-panel .pis-table-wrapper th,
+[data-theme="light"] .pis-panel .pis-table-wrapper td {
+  border-bottom-color: rgba(208, 215, 222, 0.6);
 }
 
 @media (min-width: 640px) {
@@ -1251,6 +1284,12 @@ td .delete-btn {
     margin-bottom: 0.75rem;
   }
 
+  .pis-panel .pi-card-url {
+    background: transparent;
+    padding: 0.25rem 0;
+    border-radius: 0;
+  }
+
   .pi-card-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1534,6 +1573,16 @@ td .delete-btn {
   color: var(--text-muted);
   cursor: pointer;
   transition: all var(--transition);
+  position: relative;
+}
+
+.terminal-fullscreen-btn svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.terminal-fullscreen-btn svg[hidden] {
+  display: none;
 }
 
 .terminal-fullscreen-btn:hover {
