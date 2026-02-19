@@ -665,8 +665,10 @@ section h2 {
   font-size: 0.9375rem;
 }
 
-/* Pis panel - flat content area, no outer card */
-.pis-panel {
+/* Dashboard panels - flat content area, no outer card */
+.pis-panel,
+#panel-settings .settings,
+#panel-diagnostics .diagnostics {
   background: transparent;
   border: none;
   box-shadow: none;
