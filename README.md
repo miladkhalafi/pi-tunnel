@@ -1,54 +1,63 @@
 # Pi Tunnel
 
-Control one or more Raspberry Pis remotely via reverse SSH tunnels. The Pi connects out to your server (works behind NAT); you SSH to the server, then connect to any Pi through the tunnel.
+Remotely access Raspberry Pis over SSH, even when they're behind home/office firewalls (NAT). Each Pi opens an **outbound** connection to your server—no router port forwarding needed. You connect to the server, then reach any Pi through the tunnel.
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    subgraph User["👤 User"]
-        Browser["Browser (Web Terminal)"]
-        SSHClient["SSH Client"]
-    end
-
-    subgraph Server["🖥️ Server (Docker)"]
-        Web["pi-tunnel-web :8080"]
-        SSH["pi-tunnel :2222"]
-        Tunnels["Tunnel Ports 10022-10031"]
-        
-        Web --> SSH
-        SSH --> Tunnels
-    end
-
-    subgraph Pis["🍓 Raspberry Pis (behind NAT)"]
-        Pi1["Pi 1"]
-        Pi2["Pi 2"]
-        PiN["Pi N"]
-    end
-
-    Browser -->|"HTTPS"| Web
-    SSHClient -->|"SSH to server"| Server
-    Web -->|"SSH via tunnel"| Tunnels
-    Tunnels --> Pi1
-    Tunnels --> Pi2
-    Tunnels --> PiN
-
-    Pi1 -->|"Outbound SSH tunnel"| SSH
-    Pi2 -->|"Outbound SSH tunnel"| SSH
-    PiN -->|"Outbound SSH tunnel"| SSH
 ```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  YOU                                                                         │
+│  ┌──────────────────┐     ┌──────────────────┐                              │
+│  │ Browser           │     │ SSH Client        │                              │
+│  │ (Web Terminal)    │     │ (terminal, PuTTY) │                              │
+│  └────────┬─────────┘     └────────┬─────────┘                              │
+│           │                        │                                          │
+│           │ HTTPS                  │ SSH to server, then                      │
+│           │                        │ ssh -p 10022 pi@localhost                 │
+└───────────┼────────────────────────┼─────────────────────────────────────────┘
+            │                        │
+            ▼                        ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│  YOUR SERVER (Docker)                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │  pi-tunnel-web (:8080)          pi-tunnel (:2222)                        │  │
+│  │  • Dashboard, registration       • Accepts Pi connections               │  │
+│  │  • Web terminal                  • Tunnel ports 10022–10031              │  │
+│  │         │                                  │                             │  │
+│  │         └──────────────────┬───────────────┘                             │  │
+│  │                            ▼                                             │  │
+│  │              Each port (10022, 10023...) forwards to one Pi              │  │
+│  └─────────────────────────────────────────────────────────────────────────┘  │
+│                                          ▲                                     │
+│                                          │ Outbound reverse tunnel             │
+└──────────────────────────────────────────┼─────────────────────────────────────┘
+                                           │
+┌──────────────────────────────────────────┼─────────────────────────────────────┐
+│  RASPBERRY PIs (behind NAT / firewall)    │                                     │
+│  Pi 1, Pi 2, Pi 3...                      │                                     │
+│  • No incoming ports needed               │                                     │
+│  • Each initiates SSH tunnel to server ───┘                                     │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Flow summary:**
+1. **Pis → Server:** Each Pi connects outbound to your server and creates a reverse tunnel (server port 10022+ → Pi’s SSH).
+2. **You → Server:** Use the web UI or SSH into your server.
+3. **You → Pi:** Connect via `localhost:PORT` (web or CLI). Traffic is forwarded through the tunnel to the Pi.
 
 ## How It Works
 
-- **Raspberry Pi** (behind NAT): Opens an outbound SSH tunnel to your server. No port forwarding on your router.
-- **Server** (static IP): Accepts tunnels and forwards them. You SSH to the server, then `ssh -p PORT user@localhost` to reach a Pi.
-- **Web UI**: Create Pis, get unique registration URLs, run a script on each Pi to generate keys and configure the tunnel, and connect via a browser terminal.
+| Component | Role |
+|-----------|------|
+| **Raspberry Pi** (behind NAT) | Opens an outbound SSH tunnel to your server. No port forwarding required on your router. |
+| **Server** (static IP) | Accepts tunnel connections and exposes a port per Pi. You SSH to the server, then run `ssh -p PORT user@localhost` to reach a Pi. |
+| **Web UI** | Create Pis, get unique registration URLs, run a one-line script on each Pi to set up keys and the tunnel, and connect via a browser terminal. |
 
 ## Prerequisites
 
-- A server with a static IP (or hostname)
-- Raspberry Pi(s) with internet access
-- Docker and Docker Compose on the server
+- **Server** with a static IP or hostname (VPS, cloud instance, or home server)
+- **Raspberry Pi(s)** with internet access (can be behind NAT)
+- **Docker & Docker Compose** installed on the server
 
 ## Quick Start
 
@@ -73,10 +82,10 @@ docker compose up -d
 ```
 
 This runs:
-- **pi-tunnel-web** on port 8080 (web UI)
-- **pi-tunnel** on port 2222 (SSH for Pi connections) and ports 10022–10031 (tunnel endpoints)
+- **pi-tunnel-web** on port 8080 (dashboard, registration, web terminal)
+- **pi-tunnel** on port 2222 (where Pis connect) and 10022–10031 (one port per Pi)
 
-**First-time deployment:** The pi-tunnel container starts with an empty `authorized_keys` file. Create a Pi in the web UI, run the registration script on the Pi, and the tunnel will accept connections once the key is registered.
+**First time:** The tunnel starts empty. Create a Pi in the web UI, run the registration script on that Pi, and the tunnel will accept connections once the key is registered.
 
 ### 2. Configure the Web UI
 
@@ -87,10 +96,10 @@ This runs:
 
 ### 3. Add a Raspberry Pi
 
-1. In the web UI, enter a name (e.g. `pi-home`) and click **Create**.
-2. Copy the registration URL (e.g. `https://your-server.com/register/abc123...`).
+1. In the dashboard, enter a name (e.g. `pi-home`) and click **Create**.
+2. Copy the **registration URL** shown for that Pi (e.g. `https://your-server.com/register/abc123...`).
 
-### 4. Register the Pi (Headless)
+### 4. Register the Pi (One-Time Setup)
 
 On the Raspberry Pi, run:
 
@@ -99,33 +108,33 @@ curl -sSL https://your-server.com/register/YOUR_TOKEN/script | bash
 ```
 
 The script will:
-- Generate an SSH key if needed
-- Send the public key to the server
+- Generate an SSH key on the Pi (if needed)
+- Send the Pi's public key to the server
 - Add the server's public key to the Pi's `authorized_keys`
-- Install autossh and create a systemd service for the tunnel
+- Install autossh and create a systemd service to keep the tunnel running
 
-**Headless mode:** When `WEB_URL` or `SERVER_URL` is set on the server, the script runs fully non-interactive with no prompts. The server host and SSH port (2222) are injected into the script.
+**Headless mode:** When `WEB_URL` or `SERVER_URL` is set, the script runs fully non-interactive (no prompts). The server host and port (2222) are injected automatically.
 
 ### 5. Connect to the Pi
 
 **Option A: Web terminal** (recommended)
 
-1. Keys are auto-generated on first run (stored in `./data/.ssh/`). No setup needed.
+1. No extra setup—keys are auto-generated on first run (stored in `./data/.ssh/`).
 2. In the dashboard, click **Connect** next to a registered Pi.
-3. A browser terminal opens; you get a shell on the Pi.
+3. A browser terminal opens with a shell on the Pi.
 
-To use your own key instead, mount `./keys` with your `id_ed25519` and add the volume to docker-compose.
+To use your own SSH key, mount `./keys` with your `id_ed25519` and add the volume in docker-compose.
 
-**Option B: SSH from server**
+**Option B: SSH from your machine**
 
-1. SSH to your server.
-2. Run:
+1. SSH to your server: `ssh user@your-server.com`
+2. Then connect through the tunnel (use the port shown in the dashboard for that Pi):
 
 ```bash
 ssh -p 10022 pi@localhost
 ```
 
-Use the port shown in the web UI for that Pi. Replace `pi` with the username on the Pi if different.
+Replace `pi` with the username on the Pi if different.
 
 ### 6. Uninstall (optional)
 
@@ -161,34 +170,36 @@ This stops the tunnel service, unregisters the Pi from the server, and removes t
 
 ## Ports
 
-| Port | Service |
+| Port | Purpose |
 |------|---------|
-| 8080 | Web UI |
-| 2222 | SSH (Pi connects here) |
-| 10022–10031 | Tunnel endpoints (one per Pi) |
+| 8080 | Web dashboard (registration, web terminal) |
+| 2222 | Pis connect here to establish reverse tunnels |
+| 10022–10031 | Tunnel endpoints—each port maps to one Pi (used when connecting) |
 
 ## Separate Domains
 
-You can use different domains for the dashboard (registration, API) and the SSH tunnel:
+You can serve the dashboard and the SSH tunnel from different hosts:
 
-- **Dashboard domain** (`WEB_URL`): Registration links, script, and API. Users access the dashboard here.
-- **SSH tunnel host** (`SSH_TUNNEL_HOST`): Where Pis connect for the reverse tunnel. Use when SSH runs on a different host.
+| Variable | Purpose |
+|----------|---------|
+| `WEB_URL` | Dashboard URL—registration links, script, and API |
+| `SSH_TUNNEL_HOST` | Host where Pis connect for the tunnel (use when SSH runs elsewhere) |
 
-**Single host** (dashboard and SSH on same server):
+**Same host** (default):
 
 ```
 WEB_URL=https://dashboard.example.com
-# SSH_TUNNEL_HOST not set – uses dashboard.example.com for tunnel
+# SSH_TUNNEL_HOST not set — Pis use dashboard.example.com for the tunnel
 ```
 
-**Separate hosts** (SSH on dedicated server):
+**Different hosts** (e.g. SSH on dedicated server):
 
 ```
 WEB_URL=https://dashboard.example.com
 SSH_TUNNEL_HOST=ssh.example.com
 ```
 
-Configure your reverse proxy: `dashboard.example.com` -> pi-tunnel-web:8080. For SSH, ensure `ssh.example.com:2222` routes to pi-tunnel:2222 (or the same host if colocated).
+Configure your reverse proxy so `dashboard.example.com` → pi-tunnel-web:8080, and `ssh.example.com:2222` → pi-tunnel:2222.
 
 ## Building from Source
 

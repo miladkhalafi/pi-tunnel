@@ -102,7 +102,12 @@ def setup():
 
 @app.context_processor
 def inject_current_user():
-    return {"current_user": get_current_user()}
+    ctx = {"current_user": get_current_user()}
+    try:
+        ctx["current_endpoint"] = request.endpoint if request.url_rule else None
+    except Exception:
+        ctx["current_endpoint"] = None
+    return ctx
 
 
 def get_current_user():
