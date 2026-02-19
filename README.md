@@ -4,40 +4,31 @@ Remotely access Raspberry Pis over SSH, even when they're behind home/office fir
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  YOU                                                                         │
-│  ┌──────────────────┐     ┌──────────────────┐                              │
-│  │ Browser           │     │ SSH Client        │                              │
-│  │ (Web Terminal)    │     │ (terminal, PuTTY) │                              │
-│  └────────┬─────────┘     └────────┬─────────┘                              │
-│           │                        │                                          │
-│           │ HTTPS                  │ SSH to server, then                      │
-│           │                        │ ssh -p 10022 pi@localhost                 │
-└───────────┼────────────────────────┼─────────────────────────────────────────┘
-            │                        │
-            ▼                        ▼
-┌───────────────────────────────────────────────────────────────────────────────┐
-│  YOUR SERVER (Docker)                                                          │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │  pi-tunnel-web (:8080)          pi-tunnel (:2222)                        │  │
-│  │  • Dashboard, registration       • Accepts Pi connections               │  │
-│  │  • Web terminal                  • Tunnel ports 10022–10031              │  │
-│  │         │                                  │                             │  │
-│  │         └──────────────────┬───────────────┘                             │  │
-│  │                            ▼                                             │  │
-│  │              Each port (10022, 10023...) forwards to one Pi              │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-│                                          ▲                                     │
-│                                          │ Outbound reverse tunnel             │
-└──────────────────────────────────────────┼─────────────────────────────────────┘
-                                           │
-┌──────────────────────────────────────────┼─────────────────────────────────────┐
-│  RASPBERRY PIs (behind NAT / firewall)    │                                     │
-│  Pi 1, Pi 2, Pi 3...                      │                                     │
-│  • No incoming ports needed               │                                     │
-│  • Each initiates SSH tunnel to server ───┘                                     │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph You[" YOU "]
+        Browser["Browser (Web Terminal)"]
+        SSHClient["SSH Client (terminal, PuTTY)"]
+    end
+
+    subgraph Server["YOUR SERVER (Docker)"]
+        Web["pi-tunnel-web (:8080)<br/>Dashboard, registration, web terminal"]
+        Tunnel["pi-tunnel (:2222)<br/>Accepts Pi connections<br/>Tunnel ports 10022–10031"]
+        Web --> Tunnel
+        Tunnel --> Forward["Each port forwards to one Pi"]
+    end
+
+    subgraph Pis["RASPBERRY PIs (behind NAT/firewall)"]
+        Pi1["Pi 1"]
+        Pi2["Pi 2"]
+        Pi3["Pi 3"]
+    end
+
+    Browser -->|HTTPS| Web
+    SSHClient -->|"SSH to server, then<br/>ssh -p 10022 pi@localhost"| Web
+    Pi1 -.->|Outbound reverse tunnel| Tunnel
+    Pi2 -.->|Outbound reverse tunnel| Tunnel
+    Pi3 -.->|Outbound reverse tunnel| Tunnel
 ```
 
 **Flow summary:**

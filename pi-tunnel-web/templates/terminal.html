@@ -40,8 +40,8 @@ const term = new Terminal({
     theme: { background: '#0f1117', foreground: '#e6edf3' }
 });
 
-const FitAddonClass = window.FitAddon;
-const fitAddon = FitAddonClass ? new FitAddonClass() : null;
+const FitAddonClass = window.FitAddon?.FitAddon || window.FitAddon;
+const fitAddon = (typeof FitAddonClass === 'function') ? new FitAddonClass() : null;
 if (fitAddon) term.loadAddon(fitAddon);
 
 term.open(document.getElementById('terminal'));
