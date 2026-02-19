@@ -3,14 +3,32 @@
 {% block title %}Terminal - {{ pi.name }}{% endblock %}
 
 {% block content %}
-<section class="terminal-section">
-    <p><a href="{{ url_for('index') }}">← Back to dashboard</a></p>
-    <h2>Terminal: {{ pi.name }} <span id="connection-status" class="connection-status"></span></h2>
+<div class="terminal-wrapper" id="terminal-wrapper">
+    <div class="terminal-fullscreen-bar" id="terminal-fullscreen-bar" hidden>
+        <button type="button" class="terminal-exit-fullscreen-btn" id="terminal-exit-fullscreen-btn">Exit fullscreen</button>
+        <span class="terminal-fullscreen-title">{{ pi.name }}</span>
+        <span id="connection-status-fs" class="connection-status"></span>
+    </div>
+    <div class="terminal-header">
+        <a href="{{ url_for('index') }}" class="terminal-back">← Back to dashboard</a>
+        <div class="terminal-title">
+            <span class="terminal-title-text">Terminal: {{ pi.name }}</span>
+            <span id="connection-status" class="connection-status"></span>
+        </div>
+        <button type="button" class="terminal-fullscreen-btn" id="terminal-fullscreen-btn" aria-label="Enter fullscreen" title="Fullscreen">
+            <svg class="fullscreen-icon-expand" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            <svg class="fullscreen-icon-exit" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" hidden><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        </button>
+    </div>
     <div id="terminal"></div>
-</section>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+{% endblock %}
+
+{% block scripts %}
 <script>
 const piId = {{ pi.id }};
 const piName = "{{ pi.name }}";
@@ -21,6 +39,11 @@ const term = new Terminal({
     fontSize: 14,
     theme: { background: '#0f1117', foreground: '#e6edf3' }
 });
+
+const FitAddonClass = window.FitAddon;
+const fitAddon = FitAddonClass ? new FitAddonClass() : null;
+if (fitAddon) term.loadAddon(fitAddon);
+
 term.open(document.getElementById('terminal'));
 
 let ws;
@@ -30,8 +53,10 @@ const reconnectDelay = 2000;
 
 function setStatus(text, cls) {
     const el = document.getElementById('connection-status');
-    el.textContent = text;
-    el.className = 'connection-status connection-status-' + (cls || '');
+    const elFs = document.getElementById('connection-status-fs');
+    const val = 'connection-status connection-status-' + (cls || '');
+    if (el) { el.textContent = text; el.className = val; }
+    if (elFs) { elFs.textContent = text; elFs.className = val; }
 }
 
 function getWsUrl(token) {
@@ -42,17 +67,17 @@ function connect(token) {
     ws = new WebSocket(getWsUrl(token));
     ws.onopen = () => {
         reconnectAttempts = 0;
-        setStatus('', 'connected');
+        setStatus('● Connected', 'connected');
         term.writeln('Connected to ' + piName + '...');
     };
     ws.onmessage = (e) => term.write(e.data);
     ws.onerror = () => term.writeln('\r\nConnection error.');
     ws.onclose = () => {
-        setStatus('(Disconnected)', 'disconnected');
+        setStatus('● Disconnected', 'disconnected');
         term.writeln('\r\nDisconnected.');
         if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
-            setStatus('(Reconnecting...)', 'reconnecting');
+            setStatus('● Reconnecting...', 'reconnecting');
             term.writeln('Reconnecting in ' + (reconnectDelay / 1000) + 's...');
             setTimeout(reconnect, reconnectDelay);
         }
@@ -79,6 +104,69 @@ term.onResize((size) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ resize: true, cols: size.cols, rows: size.rows }));
     }
+});
+
+function fitTerminal() {
+    if (fitAddon) {
+        try { fitAddon.fit(); } catch (e) {}
+    }
+}
+
+// Fullscreen
+const wrapper = document.getElementById('terminal-wrapper');
+const fullscreenBtn = document.getElementById('terminal-fullscreen-btn');
+const exitFullscreenBtn = document.getElementById('terminal-exit-fullscreen-btn');
+const fullscreenBar = document.getElementById('terminal-fullscreen-bar');
+const expandIcon = fullscreenBtn?.querySelector('.fullscreen-icon-expand');
+const exitIcon = fullscreenBtn?.querySelector('.fullscreen-icon-exit');
+
+function enterFullscreen() {
+    if (!wrapper?.requestFullscreen) return;
+    wrapper.classList.add('fullscreen');
+    fullscreenBar.hidden = false;
+    wrapper.requestFullscreen().then(() => {
+        fullscreenBtn?.setAttribute('aria-label', 'Exit fullscreen');
+        if (expandIcon) expandIcon.hidden = true;
+        if (exitIcon) exitIcon.hidden = false;
+        setTimeout(fitTerminal, 100);
+    });
+}
+
+function exitFullscreen() {
+    if (!document.exitFullscreen) return;
+    document.exitFullscreen().then(() => {
+        wrapper.classList.remove('fullscreen');
+        fullscreenBar.hidden = true;
+        fullscreenBtn?.setAttribute('aria-label', 'Enter fullscreen');
+        if (expandIcon) expandIcon.hidden = false;
+        if (exitIcon) exitIcon.hidden = true;
+        setTimeout(fitTerminal, 100);
+    });
+}
+
+function toggleFullscreen() {
+    if (document.fullscreenElement) exitFullscreen();
+    else enterFullscreen();
+}
+
+fullscreenBtn?.addEventListener('click', toggleFullscreen);
+exitFullscreenBtn?.addEventListener('click', exitFullscreen);
+
+document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+        wrapper.classList.remove('fullscreen');
+        fullscreenBar.hidden = true;
+        fullscreenBtn?.setAttribute('aria-label', 'Enter fullscreen');
+        if (expandIcon) expandIcon.hidden = false;
+        if (exitIcon) exitIcon.hidden = true;
+        setTimeout(fitTerminal, 100);
+    } else {
+        setTimeout(fitTerminal, 100);
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (document.fullscreenElement) fitTerminal();
 });
 </script>
 {% endblock %}

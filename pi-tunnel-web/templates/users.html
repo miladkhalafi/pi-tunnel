@@ -19,25 +19,37 @@
 <section class="create section-accent" id="create-user-section">
     <h2>Add User</h2>
     <p class="section-desc">Create a new dashboard user. Admin users can manage Pis and settings; viewers can only connect.</p>
-    <form id="create-user-form">
-        <input type="text" id="user-username" name="username" placeholder="Username" required>
-        <input type="password" id="user-password" name="password" placeholder="Password" required>
-        <select id="user-role" name="role">
-            <option value="viewer">Viewer</option>
-            <option value="admin">Admin</option>
-        </select>
-        <button type="submit" id="create-user-btn">Add User</button>
+    <form id="create-user-form" class="create-user-form-grid">
+        <div class="form-field">
+            <label for="user-username">Username</label>
+            <input type="text" id="user-username" name="username" placeholder="Username" required>
+        </div>
+        <div class="form-field">
+            <label for="user-password">Password</label>
+            <input type="password" id="user-password" name="password" placeholder="Password" required>
+        </div>
+        <div class="form-field">
+            <label for="user-role">Role</label>
+            <select id="user-role" name="role">
+                <option value="viewer">Viewer</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="form-field form-field-submit">
+            <button type="submit" id="create-user-btn">Add User</button>
+        </div>
     </form>
 </section>
 
 <section class="pis">
     <h2>Users</h2>
     <p class="section-desc">Dashboard users and their roles.</p>
+    {% if users %}
     <div class="pis-table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>Username</th>
+                    <th>User</th>
                     <th>Role</th>
                     <th>Actions</th>
                 </tr>
@@ -45,15 +57,20 @@
             <tbody>
                 {% for user in users %}
                 <tr data-id="{{ user.id }}">
-                    <td>{{ user.username }}</td>
                     <td>
-                        <span class="status {{ 'registered' if user.role == 'admin' else 'pending' }}">{{ user.role }}</span>
+                        <div class="user-cell">
+                            <span class="user-avatar" aria-hidden="true">{{ user.username[0]|upper }}</span>
+                            <span class="user-name">{{ user.username }}{% if current_user.id == user.id %} <em class="text-muted">(you)</em>{% endif %}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status status-role status-role-{{ user.role }}">{{ user.role }}</span>
                     </td>
                     <td>
                         {% if current_user.id != user.id %}
                         <button class="delete-btn delete-user-btn" data-id="{{ user.id }}" data-username="{{ user.username }}">Delete</button>
                         {% else %}
-                        <span class="text-muted">(you)</span>
+                        <span class="text-muted">—</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -61,6 +78,15 @@
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="empty-state-title">No users yet</h3>
+        <p class="empty-state-desc">Create the first user above.</p>
+    </div>
+    {% endif %}
 </section>
 
 <script>
@@ -68,9 +94,9 @@
     const toast = document.getElementById('toast');
     function showToast(msg, isError) {
         toast.textContent = msg;
-        toast.className = 'toast' + (isError ? ' toast-error' : '');
+        toast.className = 'toast' + (isError ? ' toast-error' : ' toast-success');
         toast.hidden = false;
-        setTimeout(() => { toast.hidden = true; }, 4000);
+        setTimeout(() => { toast.hidden = true; toast.className = 'toast'; }, 4000);
     }
 
     document.getElementById('create-user-form').addEventListener('submit', async (e) => {
@@ -84,6 +110,7 @@
             const r = await fetch('/api/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ username, password, role })
             });
             const data = await r.json();
@@ -118,7 +145,7 @@
     confirmBtn.addEventListener('click', async () => {
         if (!pendingDeleteId) return;
         try {
-            const r = await fetch(`/api/users/${pendingDeleteId}`, { method: 'DELETE' });
+            const r = await fetch(`/api/users/${pendingDeleteId}`, { method: 'DELETE', credentials: 'include' });
             if (r.ok) {
                 showToast('User deleted');
                 modal.hidden = true;

@@ -3,24 +3,35 @@
 {% block title %}Pi Tunnel - Login{% endblock %}
 
 {% block content %}
-<section class="login-section">
-    <h2>Sign in</h2>
-    {% if no_users %}
-    <p class="login-help">No users configured. Set ADMIN_USERNAME and ADMIN_PASSWORD in your environment to create the first admin, then restart the application.</p>
-    {% endif %}
-    {% if error %}
-    <p class="login-error">{{ error }}</p>
-    {% endif %}
-    <form method="post" action="{{ url_for('login') }}" class="login-form">
-        <div class="login-field">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+<div class="login-wrapper">
+    <section class="login-section login-card">
+        <div class="login-brand">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="login-logo" width="48" height="48">
+            <h2 class="login-title">Sign in</h2>
         </div>
-        <div class="login-field">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required autocomplete="current-password">
+        {% if no_users %}
+        <div class="login-message login-message-help">
+            <svg class="login-message-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <p>No users configured. Set ADMIN_USERNAME and ADMIN_PASSWORD in your environment to create the first admin, then restart the application.</p>
         </div>
-        <button type="submit">Sign in</button>
-    </form>
-</section>
+        {% endif %}
+        {% if error %}
+        <div class="login-message login-message-error">
+            <svg class="login-message-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
+        <form method="post" action="{{ url_for('login') }}" class="login-form">
+            <div class="login-field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+            </div>
+            <div class="login-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="login-submit">Sign in</button>
+        </form>
+    </section>
+</div>
 {% endblock %}

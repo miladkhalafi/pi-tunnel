@@ -17,165 +17,184 @@
 </div>
 
 {% if current_user and current_user.role == 'admin' %}
-<section class="create section-accent" id="create-section">
-    <h2>Add Raspberry Pi</h2>
-    <p class="section-desc">Register a new Pi to enable remote SSH access.</p>
-    <form id="create-form">
-        <input type="text" id="pi-name" name="name" placeholder="e.g. pi-living-room" required>
-        <button type="submit" id="create-btn">Create</button>
-    </form>
-</section>
+<div class="dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+    <button type="button" class="dashboard-tab active" role="tab" id="tab-pis" aria-selected="true" aria-controls="panel-pis" data-tab="pis">Pis</button>
+    <button type="button" class="dashboard-tab" role="tab" id="tab-settings" aria-selected="false" aria-controls="panel-settings" data-tab="settings">Settings</button>
+    <button type="button" class="dashboard-tab" role="tab" id="tab-diagnostics" aria-selected="false" aria-controls="panel-diagnostics" data-tab="diagnostics">Key diagnostics</button>
+</div>
 {% endif %}
 
-<section class="pis">
-    <h2>Raspberry Pis</h2>
-    <p class="section-desc">Your registered devices and their registration URLs.</p>
-    {% if pis %}
-    <div class="pis-table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Port</th>
-                    <th>Status</th>
-                    <th>Registration</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+<div class="dashboard-panels">
+    <!-- Tab: Pis -->
+    <section id="panel-pis" class="dashboard-panel active" role="tabpanel" aria-labelledby="tab-pis">
+        {% if current_user and current_user.role == 'admin' %}
+        <div class="create section-accent" id="create-section">
+            <h2>Add Raspberry Pi</h2>
+            <p class="section-desc">Register a new Pi to enable remote SSH access.</p>
+            <form id="create-form" class="create-form-inline">
+                <input type="text" id="pi-name" name="name" placeholder="e.g. pi-living-room" required>
+                <button type="submit" id="create-btn">Create</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <section class="pis">
+            <h2>Raspberry Pis</h2>
+            <p class="section-desc">Your registered devices and their registration URLs.</p>
+            {% if pis %}
+            <div class="pis-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Port</th>
+                            <th>Status</th>
+                            <th>Registration</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pi in pis %}
+                        <tr data-id="{{ pi.id }}">
+                            <td>{{ pi.name }}</td>
+                            <td>{{ pi.port }}</td>
+                            <td>
+                                {% if pi.public_key %}
+                                <span class="status registered">Registered</span>
+                                {% else %}
+                                <span class="status pending">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
+                                {% if current_user and current_user.role == 'admin' %}
+                                <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
+                                <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
+                                <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pi.public_key %}
+                                <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
+                                {% endif %}
+                                {% if current_user and current_user.role == 'admin' %}
+                                <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                </div>
+                <h3 class="empty-state-title">No Raspberry Pis yet</h3>
+                <p class="empty-state-desc">{% if current_user and current_user.role == 'admin' %}Add your first Pi to get started with remote SSH access.{% else %}Ask an admin to add a Pi.{% endif %}</p>
+                {% if current_user and current_user.role == 'admin' %}
+                <a href="#create-section" class="empty-state-btn" id="empty-state-add-btn">Add Pi</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if pis %}
+            <div class="pi-cards">
                 {% for pi in pis %}
-                <tr data-id="{{ pi.id }}">
-                    <td>{{ pi.name }}</td>
-                    <td>{{ pi.port }}</td>
-                    <td>
+                <div class="pi-card" data-id="{{ pi.id }}">
+                    <div class="pi-card-header">
+                        <span class="pi-card-name">{{ pi.name }}</span>
                         {% if pi.public_key %}
                         <span class="status registered">Registered</span>
                         {% else %}
                         <span class="status pending">Pending</span>
                         {% endif %}
-                    </td>
-                    <td>
-                        <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
+                    </div>
+                    <div class="pi-card-meta">
+                        <span>Port {{ pi.port }}</span>
+                    </div>
+                    <div class="pi-card-url">{{ base_url }}/register/{{ pi.token }}</div>
+                    <div class="pi-card-actions">
                         {% if current_user and current_user.role == 'admin' %}
                         <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
                         <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
                         <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
                         {% endif %}
-                    </td>
-                    <td>
                         {% if pi.public_key %}
                         <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
                         {% endif %}
                         {% if current_user and current_user.role == 'admin' %}
                         <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
                         {% endif %}
-                    </td>
-                </tr>
+                    </div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-state-icon" aria-hidden="true">◉</div>
-        <h3 class="empty-state-title">No Raspberry Pis yet</h3>
-        <p class="empty-state-desc">{% if current_user and current_user.role == 'admin' %}Add your first Pi to get started with remote SSH access.{% else %}Ask an admin to add a Pi.{% endif %}</p>
-        {% if current_user and current_user.role == 'admin' %}
-        <a href="#create-section" class="empty-state-btn" id="empty-state-add-btn">Add Pi</a>
-        {% endif %}
-    </div>
-    {% endif %}
-    {% if pis %}
-    <div class="pi-cards">
-        {% for pi in pis %}
-        <div class="pi-card" data-id="{{ pi.id }}">
-            <div class="pi-card-header">
-                <span class="pi-card-name">{{ pi.name }}</span>
-                {% if pi.public_key %}
-                <span class="status registered">Registered</span>
-                {% else %}
-                <span class="status pending">Pending</span>
-                {% endif %}
             </div>
-            <div class="pi-card-meta">
-                <span>Port {{ pi.port }}</span>
-            </div>
-            <div class="pi-card-url">{{ base_url }}/register/{{ pi.token }}</div>
-            <div class="pi-card-actions">
-                {% if current_user and current_user.role == 'admin' %}
-                <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
-                <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
-                <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
-                {% endif %}
-                {% if pi.public_key %}
-                <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
-                {% endif %}
-                {% if current_user and current_user.role == 'admin' %}
-                <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-</section>
+            {% endif %}
+        </section>
+    </section>
 
-{% if current_user and current_user.role == 'admin' %}
-<section class="settings">
-    <h2>Settings</h2>
-    <p class="section-desc">Configure the server public key for Pi SSH authentication.</p>
-    <form id="settings-form">
-        <label for="server_public_key">Server public key (for Pi to accept SSH from server)</label>
-        <textarea id="server_public_key" name="server_public_key" rows="3" placeholder="ssh-ed25519 AAAAC3...">{{ server_public_key or '' }}</textarea>
-        <p class="form-help">Paste the server's public key so Pis can accept SSH connections from this server.</p>
-        <button type="submit" id="settings-btn">Save</button>
-    </form>
-</section>
+    {% if current_user and current_user.role == 'admin' %}
+    <!-- Tab: Settings -->
+    <section id="panel-settings" class="dashboard-panel" role="tabpanel" aria-labelledby="tab-settings" hidden>
+        <section class="settings">
+            <h2>Settings</h2>
+            <p class="section-desc">Configure the server public key for Pi SSH authentication.</p>
+            <form id="settings-form">
+                <label for="server_public_key">Server public key (for Pi to accept SSH from server)</label>
+                <textarea id="server_public_key" name="server_public_key" rows="3" placeholder="ssh-ed25519 AAAAC3...">{{ server_public_key or '' }}</textarea>
+                <p class="form-help">Paste the server's public key so Pis can accept SSH connections from this server.</p>
+                <button type="submit" id="settings-btn">Save</button>
+            </form>
+        </section>
+    </section>
 
-<section class="diagnostics">
-    <details>
-        <summary><h2>Key diagnostics</h2></summary>
-        <p class="diagnostics-help">Troubleshoot "Permission denied (publickey)" and key sync issues.</p>
-        <div class="diagnostics-actions">
-            <button type="button" id="diagnostics-refresh-btn">Refresh</button>
-        </div>
-        <div id="diagnostics-content" class="diagnostics-content">
-            <p class="diagnostics-loading"><span class="diagnostics-spinner"></span> Loading...</p>
-        </div>
-        <div class="diagnostics-ak-summary" id="diagnostics-ak-summary" hidden></div>
-        <div class="diagnostics-pi-table-wrapper" id="diagnostics-pi-table-wrapper" hidden>
-            <table class="diagnostics-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Fingerprint</th>
-                        <th>In authorized_keys</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="diagnostics-pi-tbody"></tbody>
-            </table>
-        </div>
-        <div class="check-key-form">
-            <h3>Check key</h3>
-            <p>Paste a public key from the Pi (e.g. output of <code>cat ~/.ssh/id_ed25519.pub</code>) to verify it matches a registered Pi and is in authorized_keys.</p>
-            <div class="diagnostics-copy-cmds">
-                <div>
-                    <code>cat ~/.ssh/id_ed25519.pub</code>
-                    <button type="button" class="copy-cmd-btn" data-cmd="cat ~/.ssh/id_ed25519.pub">Copy</button>
-                </div>
-                <div>
-                    <code>ssh-keygen -lf ~/.ssh/id_ed25519.pub</code>
-                    <button type="button" class="copy-cmd-btn" data-cmd="ssh-keygen -lf ~/.ssh/id_ed25519.pub">Copy</button>
-                </div>
+    <!-- Tab: Key diagnostics -->
+    <section id="panel-diagnostics" class="dashboard-panel" role="tabpanel" aria-labelledby="tab-diagnostics" hidden>
+        <section class="diagnostics">
+            <h2>Key diagnostics</h2>
+            <p class="diagnostics-help">Troubleshoot "Permission denied (publickey)" and key sync issues.</p>
+            <div class="diagnostics-actions">
+                <button type="button" id="diagnostics-refresh-btn">Refresh</button>
             </div>
-            <textarea id="check-key-input" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... pi@hostname" rows="3"></textarea>
-            <button type="button" id="check-key-btn">Check</button>
-            <div id="check-key-result" class="check-key-result" hidden></div>
-        </div>
-    </details>
-</section>
-{% endif %}
+            <div id="diagnostics-content" class="diagnostics-content">
+                <p class="diagnostics-loading"><span class="diagnostics-spinner"></span> Loading...</p>
+            </div>
+            <div class="diagnostics-ak-summary" id="diagnostics-ak-summary" hidden></div>
+            <div class="diagnostics-pi-table-wrapper" id="diagnostics-pi-table-wrapper" hidden>
+                <table class="diagnostics-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Fingerprint</th>
+                            <th>In authorized_keys</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="diagnostics-pi-tbody"></tbody>
+                </table>
+            </div>
+            <div class="check-key-form">
+                <h3>Check key</h3>
+                <p>Paste a public key from the Pi (e.g. output of <code>cat ~/.ssh/id_ed25519.pub</code>) to verify it matches a registered Pi and is in authorized_keys.</p>
+                <div class="diagnostics-copy-cmds">
+                    <div>
+                        <code>cat ~/.ssh/id_ed25519.pub</code>
+                        <button type="button" class="copy-cmd-btn" data-cmd="cat ~/.ssh/id_ed25519.pub">Copy</button>
+                    </div>
+                    <div>
+                        <code>ssh-keygen -lf ~/.ssh/id_ed25519.pub</code>
+                        <button type="button" class="copy-cmd-btn" data-cmd="ssh-keygen -lf ~/.ssh/id_ed25519.pub">Copy</button>
+                    </div>
+                </div>
+                <textarea id="check-key-input" placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... pi@hostname" rows="3"></textarea>
+                <button type="button" id="check-key-btn">Check</button>
+                <div id="check-key-result" class="check-key-result" hidden></div>
+            </div>
+        </section>
+    </section>
+    {% endif %}
+</div>
 
 <script>
 function showToast(message, type) {
@@ -298,18 +317,11 @@ deleteModalConfirm.addEventListener('click', async () => {
     }
 });
 
-document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        pendingDeleteId = btn.dataset.id;
-        deleteModal.hidden = false;
-        deleteModalConfirm.focus();
-    });
-});
-
 async function loadDiagnostics() {
     const content = document.getElementById('diagnostics-content');
     const akSummary = document.getElementById('diagnostics-ak-summary');
     const piTable = document.getElementById('diagnostics-pi-table-wrapper');
+    if (!content) return;
     content.innerHTML = '<p class="diagnostics-loading"><span class="diagnostics-spinner"></span> Loading...</p>';
     akSummary.hidden = true;
     piTable.hidden = true;
@@ -345,11 +357,7 @@ function escapeHtml(s) {
 
 document.getElementById('diagnostics-refresh-btn')?.addEventListener('click', loadDiagnostics);
 
-document.querySelector('.diagnostics details')?.addEventListener('toggle', (e) => {
-    if (e.target.open) loadDiagnostics();
-});
-
-document.getElementById('check-key-btn').addEventListener('click', async () => {
+document.getElementById('check-key-btn')?.addEventListener('click', async () => {
     const input = document.getElementById('check-key-input');
     const result = document.getElementById('check-key-result');
     const key = input.value.trim();
@@ -393,5 +401,64 @@ document.querySelectorAll('.copy-cmd-btn').forEach(btn => {
         copyFeedback(btn, btn.textContent);
     });
 });
+
+// Tab switching
+(function() {
+    const tabs = document.querySelectorAll('.dashboard-tab');
+    const panels = document.querySelectorAll('.dashboard-panel');
+    let diagnosticsLoaded = false;
+
+    const hashTab = () => {
+        const m = location.hash.match(/#tab=(pis|settings|diagnostics)/);
+        return m ? m[1] : 'pis';
+    };
+
+    const setTab = (tabId) => {
+        tabs.forEach(t => {
+            const isActive = t.dataset.tab === tabId;
+            t.classList.toggle('active', isActive);
+            t.setAttribute('aria-selected', isActive);
+        });
+        panels.forEach(p => {
+            const controlId = p.getAttribute('aria-labelledby');
+            const tab = document.getElementById(controlId);
+            const isActive = tab && tab.dataset.tab === tabId;
+            p.classList.toggle('active', isActive);
+            p.hidden = !isActive;
+
+            if (tabId === 'diagnostics' && isActive && !diagnosticsLoaded) {
+                diagnosticsLoaded = true;
+                loadDiagnostics();
+            }
+        });
+        if (tabId !== 'pis') {
+            history.replaceState(null, '', location.pathname + '#tab=' + tabId);
+        } else {
+            history.replaceState(null, '', location.pathname);
+        }
+    };
+
+    const initTab = () => {
+        const tab = hashTab();
+        setTab(tab);
+    };
+
+    tabs.forEach(t => {
+        t.addEventListener('click', () => setTab(t.dataset.tab));
+        t.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const idx = Array.from(tabs).indexOf(t);
+                const next = e.key === 'ArrowRight' ? idx + 1 : idx - 1;
+                const wrap = (next + tabs.length) % tabs.length;
+                tabs[wrap].focus();
+                setTab(tabs[wrap].dataset.tab);
+            }
+        });
+    });
+
+    window.addEventListener('hashchange', initTab);
+    initTab();
+})();
 </script>
 {% endblock %}

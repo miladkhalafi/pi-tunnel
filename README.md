@@ -1,4 +1,4 @@
-# Pi Remote Access
+# Pi Tunnel
 
 Control one or more Raspberry Pis remotely via reverse SSH tunnels. The Pi connects out to your server (works behind NAT); you SSH to the server, then connect to any Pi through the tunnel.
 
