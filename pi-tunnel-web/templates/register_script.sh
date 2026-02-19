@@ -86,7 +86,13 @@ if ! command -v autossh &>/dev/null; then
   sudo apt-get update && sudo apt-get install -y autossh
 fi
 
+# Remove stale host key (auto-resolve "REMOTE HOST IDENTIFICATION HAS CHANGED")
+# When server/container is rebuilt, host keys change; removing old entry lets the new key be accepted
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[${SERVER_HOST}]:${SSH_PORT}" 2>/dev/null || true
+
 # Create systemd service
+# ExecStartPre removes stale known_hosts entry so host key changes (e.g. after container rebuild) auto-resolve
+# StrictHostKeyChecking=accept-new adds new keys without prompt; combined with pre-removal, reconnects succeed
 SVC_FILE="/etc/systemd/system/ssh-reverse-tunnel.service"
 sudo tee "$SVC_FILE" << EOF
 [Unit]
@@ -97,7 +103,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=$(whoami)
-ExecStart=/usr/bin/autossh -M 0 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -N -R ${PORT}:localhost:22 -p ${SSH_PORT} pitunnel@${SERVER_HOST}
+ExecStartPre=-/usr/bin/ssh-keygen -f $HOME/.ssh/known_hosts -R '[${SERVER_HOST}]:${SSH_PORT}' 2>/dev/null || true
+ExecStart=/usr/bin/autossh -M 0 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=accept-new -N -R ${PORT}:localhost:22 -p ${SSH_PORT} pitunnel@${SERVER_HOST}
 Restart=always
 RestartSec=10
 
