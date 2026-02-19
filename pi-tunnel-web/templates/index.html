@@ -27,20 +27,18 @@
 <div class="dashboard-panels">
     <!-- Tab: Pis -->
     <section id="panel-pis" class="dashboard-panel active" role="tabpanel" aria-labelledby="tab-pis">
-        {% if current_user and current_user.role == 'admin' %}
-        <div class="create section-accent" id="create-section">
-            <h2>Add Raspberry Pi</h2>
-            <p class="section-desc">Register a new Pi to enable remote SSH access.</p>
-            <form id="create-form" class="create-form-inline">
-                <input type="text" id="pi-name" name="name" placeholder="e.g. pi-living-room" required>
-                <button type="submit" id="create-btn">Create</button>
-            </form>
-        </div>
-        {% endif %}
-
-        <section class="pis">
+        <section class="pis-panel">
             <h2>Raspberry Pis</h2>
             <p class="section-desc">Your registered devices and their registration URLs.</p>
+            {% if current_user and current_user.role == 'admin' %}
+            <div class="create-inline" id="create-section">
+                <form id="create-form" class="create-form-inline">
+                    <input type="text" id="pi-name" name="name" placeholder="e.g. pi-living-room" required>
+                    <button type="submit" id="create-btn">Create</button>
+                </form>
+            </div>
+            <hr class="pis-divider">
+            {% endif %}
             {% if pis %}
             <div class="pis-table-wrapper">
                 <table>

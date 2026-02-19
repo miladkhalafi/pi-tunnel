@@ -652,15 +652,39 @@ section h2 {
   border-left: 4px solid var(--accent);
 }
 
-.create.section-accent form input[type="text"] {
+.create.section-accent form input[type="text"],
+.pis-panel .create-inline input[type="text"] {
   padding: 0.75rem 1rem;
   font-size: 1rem;
   max-width: 360px;
 }
 
-.create.section-accent form button[type="submit"] {
+.create.section-accent form button[type="submit"],
+.pis-panel .create-inline button[type="submit"] {
   padding: 0.75rem 1.5rem;
   font-size: 0.9375rem;
+}
+
+/* Pis panel - create form compact, no nested boxes */
+.pis-panel .create-inline {
+  margin-bottom: 1rem;
+}
+
+.pis-panel .pis-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 1rem;
+  opacity: 0.6;
+}
+
+.pis-panel .empty-state {
+  background: transparent;
+  border: none;
+  padding: 2rem 0;
+}
+
+[data-theme="light"] .pis-panel .empty-state {
+  background: transparent;
 }
 
 @media (min-width: 640px) {
@@ -1169,6 +1193,19 @@ td .delete-btn {
     border-radius: var(--radius);
     padding: 1rem;
     margin-bottom: 1rem;
+  }
+
+  .pis-panel .pi-card {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 1rem 0;
+    margin-bottom: 0;
+  }
+
+  .pis-panel .pi-card:last-child {
+    border-bottom: none;
   }
 
   .pi-card:last-child {
