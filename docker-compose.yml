@@ -30,6 +30,7 @@ services:
       - "10031:10031"
     volumes:
       - ./data/authorized_keys:/home/pitunnel/.ssh/authorized_keys
+      - ./data/ssh_host_keys:/host_keys
 
   pi-tunnel-web:
     image: ${WEB_IMAGE:-ghcr.io/miladkhalafi/pi-tunnel-web:latest}

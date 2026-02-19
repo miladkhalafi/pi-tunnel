@@ -232,3 +232,10 @@ On push to `main`, the workflow builds and pushes both images to GitHub Containe
 **Tunnel drops**
 - autossh and systemd restart it automatically
 - Check `journalctl -u ssh-reverse-tunnel -f` on the Pi for errors
+
+**Host key verification failed** (after server/container reboot)
+- The SSH host keys were regenerated, so the Pi rejects the new key. Rebuild and redeploy to persist host keys (see docker-compose volume `./data/ssh_host_keys`). For immediate fix on the Pi, remove the old key and reconnect:
+  ```bash
+  ssh-keygen -f '/home/milad/.ssh/known_hosts' -R '[YOUR_SSH_HOST]:2222'
+  ```
+  Replace `YOUR_SSH_HOST` with your SSH host. The next connection will add the new key.
