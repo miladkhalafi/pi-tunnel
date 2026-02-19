@@ -81,7 +81,9 @@ This runs:
 ### 2. Configure the Web UI
 
 1. Open `http://YOUR_SERVER:8080` (or your domain with reverse proxy).
-2. On first run, an SSH key pair is auto-generated and the server public key is populated in **Settings**. Click **Save** to confirm. If you prefer your own key, mount `./keys` with `id_ed25519` and paste the public key manually.
+2. Log in with the credentials from `ADMIN_USERNAME` and `ADMIN_PASSWORD` (on first run, these create the first admin user).
+3. On first run, an SSH key pair is auto-generated and the server public key is populated in **Settings**. Click **Save** to confirm. If you prefer your own key, mount `./keys` with `id_ed25519` and paste the public key manually.
+4. Create additional users from **Users**: admins can add/viewers; viewers can only connect to Pis.
 
 ### 3. Add a Raspberry Pi
 
@@ -143,8 +145,8 @@ This stops the tunnel service, unregisters the Pi from the server, and removes t
 | `SSH_TUNNEL_HOST` | Host where Pis connect for reverse SSH tunnel. Use when SSH runs on a different host than the web app | Host from `WEB_URL` |
 | `SERVER_URL` | Legacy fallback for `WEB_URL` (e.g. `https://your-server.com`). Required for headless registration when `WEB_URL` not set | Request host |
 | `SECRET_KEY` | Flask secret key (set in production) | `change-me-in-production` |
-| `ADMIN_USERNAME` | Admin login (HTTP Basic Auth). When set with `ADMIN_PASSWORD`, dashboard requires login | (none) |
-| `ADMIN_PASSWORD` | Admin password. Set with `ADMIN_USERNAME` to enable auth | (none) |
+| `ADMIN_USERNAME` | First admin bootstrap. When set with `ADMIN_PASSWORD` and no users exist, creates the initial admin | (none) |
+| `ADMIN_PASSWORD` | First admin password. Use with `ADMIN_USERNAME` to bootstrap; then create more users from the Users page | (none) |
 | `SSH_PRIVATE_KEY_PATH` | Path to private key for web terminal (overrides auto-generated key in `./data/.ssh/`) | `/app/.ssh/id_ed25519` |
 | `AUTO_GENERATE_KEYS` | Set to `false` to disable auto-generation (require manual key setup) | `true` |
 | `SERVER_PUBLIC_KEY` | Server public key string (overrides auto-derivation from private key) | (none) |
@@ -210,9 +212,10 @@ On push to `main`, the workflow builds and pushes both images to GitHub Containe
 
 - Use SSH keys only; password auth is disabled
 - Set `SECRET_KEY` in production
-- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` to protect the dashboard
+- Set `ADMIN_USERNAME` and `ADMIN_PASSWORD` to bootstrap the first admin, then create users from the dashboard
 - Use HTTPS for the web UI (reverse proxy with nginx/Caddy)
 - The registration token is the secret; anyone with the URL can register a Pi. Use a private network or restrict access to the web UI
+- **Roles**: Admin users can create/delete Pis, manage settings, and add users. Viewer users can only connect to Pis
 
 ## Troubleshooting
 

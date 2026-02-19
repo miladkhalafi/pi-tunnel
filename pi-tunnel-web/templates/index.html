@@ -16,6 +16,7 @@
     </div>
 </div>
 
+{% if current_user and current_user.role == 'admin' %}
 <section class="create section-accent" id="create-section">
     <h2>Add Raspberry Pi</h2>
     <p class="section-desc">Register a new Pi to enable remote SSH access.</p>
@@ -24,6 +25,7 @@
         <button type="submit" id="create-btn">Create</button>
     </form>
 </section>
+{% endif %}
 
 <section class="pis">
     <h2>Raspberry Pis</h2>
@@ -54,15 +56,19 @@
                     </td>
                     <td>
                         <code class="url">{{ base_url }}/register/{{ pi.token }}</code>
+                        {% if current_user and current_user.role == 'admin' %}
                         <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
                         <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
                         <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
+                        {% endif %}
                     </td>
                     <td>
                         {% if pi.public_key %}
                         <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
                         {% endif %}
+                        {% if current_user and current_user.role == 'admin' %}
                         <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -73,8 +79,10 @@
     <div class="empty-state">
         <div class="empty-state-icon" aria-hidden="true">◉</div>
         <h3 class="empty-state-title">No Raspberry Pis yet</h3>
-        <p class="empty-state-desc">Add your first Pi to get started with remote SSH access.</p>
+        <p class="empty-state-desc">{% if current_user and current_user.role == 'admin' %}Add your first Pi to get started with remote SSH access.{% else %}Ask an admin to add a Pi.{% endif %}</p>
+        {% if current_user and current_user.role == 'admin' %}
         <a href="#create-section" class="empty-state-btn" id="empty-state-add-btn">Add Pi</a>
+        {% endif %}
     </div>
     {% endif %}
     {% if pis %}
@@ -94,13 +102,17 @@
             </div>
             <div class="pi-card-url">{{ base_url }}/register/{{ pi.token }}</div>
             <div class="pi-card-actions">
+                {% if current_user and current_user.role == 'admin' %}
                 <button class="copy-btn" data-url="{{ base_url }}/register/{{ pi.token }}" title="Copy page URL">Copy URL</button>
                 <button class="copy-script-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/script" title="Copy headless script command">Copy script</button>
                 <button class="copy-uninstall-btn" data-script-url="{{ base_url }}/register/{{ pi.token }}/uninstall-script" title="Copy uninstall command">Copy uninstall</button>
+                {% endif %}
                 {% if pi.public_key %}
                 <a href="{{ url_for('terminal_page', pi_id=pi.id) }}" class="connect-btn">Connect</a>
                 {% endif %}
+                {% if current_user and current_user.role == 'admin' %}
                 <button class="delete-btn" data-id="{{ pi.id }}">Delete</button>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -108,6 +120,7 @@
     {% endif %}
 </section>
 
+{% if current_user and current_user.role == 'admin' %}
 <section class="settings">
     <h2>Settings</h2>
     <p class="section-desc">Configure the server public key for Pi SSH authentication.</p>
@@ -162,6 +175,7 @@
         </div>
     </details>
 </section>
+{% endif %}
 
 <script>
 function showToast(message, type) {
@@ -179,7 +193,7 @@ function setLoading(btn, loading) {
     btn.textContent = loading ? '...' : btn.dataset.originalText;
 }
 
-document.getElementById('settings-form').addEventListener('submit', async (e) => {
+document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('settings-btn');
     setLoading(btn, true);
@@ -197,7 +211,7 @@ document.getElementById('settings-form').addEventListener('submit', async (e) =>
     }
 });
 
-document.getElementById('create-form').addEventListener('submit', async (e) => {
+document.getElementById('create-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('create-btn');
     setLoading(btn, true);
@@ -329,9 +343,9 @@ function escapeHtml(s) {
     return div.innerHTML;
 }
 
-document.getElementById('diagnostics-refresh-btn').addEventListener('click', loadDiagnostics);
+document.getElementById('diagnostics-refresh-btn')?.addEventListener('click', loadDiagnostics);
 
-document.querySelector('.diagnostics details').addEventListener('toggle', (e) => {
+document.querySelector('.diagnostics details')?.addEventListener('toggle', (e) => {
     if (e.target.open) loadDiagnostics();
 });
 

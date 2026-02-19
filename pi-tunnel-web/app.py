@@ -21,7 +21,7 @@ PUBKEY_PREFIXES = (
     "sk-ecdsa-sha2-nistp256@openssh.com ",
 )
 
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, g, redirect, render_template, request, jsonify, Response, session, url_for
 from flask_sock import Sock
 
 from diagnostics import check_key, run_diagnostics
@@ -29,14 +29,20 @@ from keys_util import ensure_ssh_keys, get_effective_private_key_path
 from models import (
     init_db,
     create_pi,
+    create_user,
+    has_any_users,
     list_pis,
+    list_users,
+    delete_user,
     get_pi_by_token,
     get_pi_by_id,
+    get_user_by_id,
     register_public_key,
     unregister_public_key,
     delete_pi,
     get_setting,
     set_setting,
+    verify_user,
 )
 
 app = Flask(__name__)
@@ -94,20 +100,44 @@ def setup():
         logger.exception("ensure_server_public_key failed")
 
 
-def requires_auth(f):
-    """Require HTTP Basic Auth when ADMIN_USERNAME and ADMIN_PASSWORD are set."""
+@app.context_processor
+def inject_current_user():
+    return {"current_user": get_current_user()}
+
+
+def get_current_user():
+    """Return current user dict from session, or None."""
+    if "user_id" not in session:
+        return None
+    return get_user_by_id(session["user_id"])
+
+
+def login_required(f):
+    """Require authenticated session. Redirect to /login if not logged in."""
     @wraps(f)
     def decorated(*args, **kwargs):
-        username = os.environ.get("ADMIN_USERNAME")
-        password = os.environ.get("ADMIN_PASSWORD")
-        if username and password:
-            auth = request.authorization
-            if not auth or auth.username != username or auth.password != password:
-                return Response(
-                    "Authentication required",
-                    401,
-                    {"WWW-Authenticate": 'Basic realm="Pi Tunnel Admin"'},
-                )
+        user = get_current_user()
+        if not user:
+            if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
+                return jsonify({"error": "Authentication required"}), 401
+            return redirect(url_for("login", next=request.url))
+        g.current_user = user
+        return f(*args, **kwargs)
+    return decorated
+
+
+def admin_required(f):
+    """Require authenticated admin. 403 if viewer."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            if request.accept_mimetypes.best_match(["text/html", "application/json"]) == "application/json":
+                return jsonify({"error": "Authentication required"}), 401
+            return redirect(url_for("login", next=request.url))
+        if user["role"] != "admin":
+            return "Forbidden", 403
+        g.current_user = user
         return f(*args, **kwargs)
     return decorated
 
@@ -147,6 +177,29 @@ def health():
     return "", 200
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        if get_current_user():
+            return redirect(url_for("index"))
+        return render_template("login.html", no_users=not has_any_users())
+    username = (request.form.get("username") or "").strip()
+    password = request.form.get("password") or ""
+    user = verify_user(username, password)
+    if not user:
+        return render_template("login.html", error="Invalid username or password"), 401
+    session["user_id"] = user["id"]
+    session.permanent = True
+    next_url = request.args.get("next") or url_for("index")
+    return redirect(next_url)
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
 def get_base_url():
     """Base URL for registration links (WEB_URL, SERVER_URL, or request host)."""
     for env_var in ("WEB_URL", "SERVER_URL"):
@@ -172,7 +225,7 @@ def get_server_host():
 
 
 @app.route("/")
-@requires_auth
+@login_required
 def index():
     pis = list_pis()
     server_public_key = get_setting("server_public_key")
@@ -180,13 +233,13 @@ def index():
 
 
 @app.route("/api/pis", methods=["GET"])
-@requires_auth
+@login_required
 def api_list_pis():
     return jsonify(list_pis())
 
 
 @app.route("/api/pis", methods=["POST"])
-@requires_auth
+@admin_required
 def api_create_pi():
     data = request.get_json() or {}
     name = data.get("name", "pi").strip() or "pi"
@@ -199,7 +252,7 @@ def api_create_pi():
 
 
 @app.route("/api/pis/<int:pi_id>", methods=["DELETE"])
-@requires_auth
+@admin_required
 def api_delete_pi(pi_id):
     if delete_pi(pi_id):
         return "", 204
@@ -210,7 +263,7 @@ from terminal_auth import create_token
 
 
 @app.route("/terminal/<int:pi_id>")
-@requires_auth
+@login_required
 def terminal_page(pi_id):
     pi = get_pi_by_id(pi_id)
     if not pi:
@@ -220,7 +273,7 @@ def terminal_page(pi_id):
 
 
 @app.route("/api/terminal-token/<int:pi_id>")
-@requires_auth
+@login_required
 def api_terminal_token(pi_id):
     """Return a fresh WebSocket token for reconnection."""
     pi = get_pi_by_id(pi_id)
@@ -231,7 +284,7 @@ def api_terminal_token(pi_id):
 
 
 @app.route("/api/settings", methods=["POST"])
-@requires_auth
+@admin_required
 def api_save_settings():
     data = request.get_json() or {}
     if "server_public_key" in data:
@@ -240,14 +293,14 @@ def api_save_settings():
 
 
 @app.route("/api/diagnostics")
-@requires_auth
+@admin_required
 def api_diagnostics():
     """Return key diagnostics: authorized_keys status, per-Pi sync status."""
     return jsonify(run_diagnostics())
 
 
 @app.route("/api/diagnostics/check-key", methods=["POST"])
-@requires_auth
+@admin_required
 def api_check_key():
     """Check if a pasted public key matches any Pi and/or is in authorized_keys."""
     data = request.get_json() or {}
@@ -258,6 +311,38 @@ def api_check_key():
     if "error" in result:
         return jsonify(result), 400
     return jsonify(result)
+
+
+@app.route("/users")
+@admin_required
+def users_page():
+    return render_template("users.html", users=list_users())
+
+
+@app.route("/api/users", methods=["POST"])
+@admin_required
+def api_create_user():
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    role = (data.get("role") or "viewer").strip().lower()
+    if role not in ("admin", "viewer"):
+        role = "viewer"
+    try:
+        user = create_user(username, password, role)
+        return jsonify(user), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/users/<int:user_id>", methods=["DELETE"])
+@admin_required
+def api_delete_user(user_id):
+    if g.current_user["id"] == user_id:
+        return jsonify({"error": "Cannot delete your own account"}), 400
+    if delete_user(user_id):
+        return "", 204
+    return jsonify({"error": "Not found"}), 404
 
 
 @app.route("/register/<token>")

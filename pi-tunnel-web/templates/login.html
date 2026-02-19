@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Pi Tunnel - Login{% endblock %}
+
+{% block content %}
+<section class="login-section">
+    <h2>Sign in</h2>
+    {% if no_users %}
+    <p class="login-help">No users configured. Set ADMIN_USERNAME and ADMIN_PASSWORD in your environment to create the first admin, then restart the application.</p>
+    {% endif %}
+    {% if error %}
+    <p class="login-error">{{ error }}</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('login') }}" class="login-form">
+        <div class="login-field">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+        </div>
+        <div class="login-field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit">Sign in</button>
+    </form>
+</section>
+{% endblock %}

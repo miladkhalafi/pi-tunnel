@@ -118,6 +118,53 @@ header h1 {
   }
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-user {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.header-user em {
+  font-style: normal;
+  font-size: 0.8125rem;
+}
+
+.header-link {
+  font-size: 0.875rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.header-link:hover {
+  text-decoration: underline;
+}
+
+.header-logout-form {
+  margin: 0;
+}
+
+.header-logout-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.header-logout-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -234,6 +281,8 @@ form label {
 }
 
 form input[type="text"],
+form input[type="password"],
+form select,
 form textarea {
   width: 100%;
   max-width: 100%;
@@ -248,6 +297,8 @@ form textarea {
 }
 
 form input[type="text"]:focus,
+form input[type="password"]:focus,
+form select:focus,
 form textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -255,6 +306,7 @@ form textarea:focus {
 }
 
 form input[type="text"]::placeholder,
+form input[type="password"]::placeholder,
 form textarea::placeholder {
   color: var(--text-muted);
 }
@@ -268,9 +320,57 @@ form textarea {
 
 @media (min-width: 640px) {
   form input[type="text"],
+  form input[type="password"],
+  form select,
   form textarea {
     max-width: 480px;
   }
+}
+
+form select {
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+}
+
+#create-user-form input,
+#create-user-form select {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+/* Login page */
+.login-section {
+  max-width: 360px;
+  margin: 4rem auto;
+}
+
+.login-section h2 {
+  margin-bottom: 1.5rem;
+}
+
+.login-help {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.login-error {
+  color: var(--danger);
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.login-form .login-field {
+  margin-bottom: 1rem;
+}
+
+.login-form button[type="submit"] {
+  margin-top: 0.5rem;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 0.875rem;
 }
 
 form button[type="submit"] {

@@ -1,9 +1,14 @@
+import logging
 import os
 import sqlite3
 import time
 import uuid
 from pathlib import Path
 from contextlib import contextmanager
+
+from werkzeug.security import check_password_hash, generate_password_hash
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = Path(__file__).parent / "data" / "pi_tunnel.db"
 AUTHORIZED_KEYS_PATH = Path(__file__).parent / "authorized_keys"
@@ -55,6 +60,101 @@ def init_db():
                 value TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK(role IN ('admin', 'viewer')),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        _bootstrap_admin(conn)
+
+
+def _bootstrap_admin(conn: sqlite3.Connection):
+    """Create first admin from ADMIN_USERNAME/ADMIN_PASSWORD if users table is empty."""
+    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    if count > 0:
+        return
+    username = os.environ.get("ADMIN_USERNAME", "").strip()
+    password = os.environ.get("ADMIN_PASSWORD", "")
+    if not username or not password:
+        return
+    try:
+        conn.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, generate_password_hash(password, method="scrypt"), "admin"),
+        )
+        logger.info("Bootstrap: created admin user %r from ADMIN_USERNAME/ADMIN_PASSWORD", username)
+    except sqlite3.IntegrityError:
+        pass
+
+
+def create_user(username: str, password: str, role: str) -> dict:
+    """Create a new user. Role must be 'admin' or 'viewer'."""
+    if role not in ("admin", "viewer"):
+        raise ValueError("role must be 'admin' or 'viewer'")
+    username = username.strip()
+    if not username:
+        raise ValueError("username required")
+    if not password:
+        raise ValueError("password required")
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, generate_password_hash(password, method="scrypt"), role),
+        )
+        row = conn.execute(
+            "SELECT id, username, role, created_at FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+        return dict(row)
+
+
+def get_user_by_username(username: str) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, username, password_hash, role, created_at FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id, username, role, created_at FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def verify_user(username: str, password: str) -> dict | None:
+    """Verify credentials and return user dict (without password_hash) if valid."""
+    user = get_user_by_username(username)
+    if not user or not check_password_hash(user["password_hash"], password):
+        return None
+    return {"id": user["id"], "username": user["username"], "role": user["role"]}
+
+
+def has_any_users() -> bool:
+    with get_db() as conn:
+        return conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0
+
+
+def list_users() -> list:
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT id, username, role, created_at FROM users ORDER BY username"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def delete_user(user_id: int) -> bool:
+    with get_db() as conn:
+        cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        return cur.rowcount > 0
 
 
 def create_pi(name: str) -> dict:

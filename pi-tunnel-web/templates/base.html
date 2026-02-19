@@ -22,10 +22,21 @@
                 <img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="logo" width="32" height="32">
                 <h1>Pi Tunnel</h1>
             </a>
-            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle light/dark mode" aria-pressed="false" title="Toggle theme">
-                <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
-                <span class="theme-icon theme-icon-moon" aria-hidden="true">☽</span>
-            </button>
+            <div class="header-actions">
+                {% if current_user %}
+                <span class="header-user">{{ current_user.username }} <em>({{ current_user.role }})</em></span>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('users_page') }}" class="header-link">Users</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('logout') }}" class="header-logout-form">
+                    <button type="submit" class="header-logout-btn">Logout</button>
+                </form>
+                {% endif %}
+                <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle light/dark mode" aria-pressed="false" title="Toggle theme">
+                    <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
+                    <span class="theme-icon theme-icon-moon" aria-hidden="true">☽</span>
+                </button>
+            </div>
         </div>
     </header>
     <main>
